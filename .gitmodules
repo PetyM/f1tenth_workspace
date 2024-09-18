@@ -1,0 +1,9 @@
+[submodule "f1tenth_gym_ros"]
+	path = f1tenth_gym_ros
+	url = git@github.com:PetyM/f1tenth_gym_ros.git
+[submodule "f1tenth_racetracks"]
+	path = f1tenth_racetracks
+	url = https://github.com/f1tenth/f1tenth_racetracks.git
+[submodule "f1t-ftg"]
+	path = f1t-ftg
+	url = https://github.com/CTU-IIG/f1t-ftg.git
