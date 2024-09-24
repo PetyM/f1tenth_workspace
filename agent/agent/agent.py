@@ -86,8 +86,8 @@ class Agent(Node):
 
             msg = AckermannDriveStamped()
             msg.header.stamp = self.get_clock().now().to_msg()
-            msg.drive.speed = action[0]
-            msg.drive.steering_angle = action[1]
+            msg.drive.speed = action[1]
+            msg.drive.steering_angle = action[0]
             self.drive_publiser.publish(msg)
 
 
