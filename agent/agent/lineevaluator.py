@@ -34,8 +34,8 @@ class LineEvaluation:
         distance_from_oponent = np.linalg.norm(state.position - previous_oponent_state.position)
         oponent_factor = distance_from_oponent if np.linalg.norm(previous_state.position - previous_oponent_state.position) < 2 else 0
         traveled_distance/=1.5
-        if(np.abs(previous_state.steering_angle - state.steering_angle)>0.2):
-            return -100
+        # if(np.abs(previous_state.steering_angle - state.steering_angle)>0.2):
+        #     return -100
    
         if np.linalg.norm(state.position - oponent_state.position) < 0.3 or state.distance_from_centerline>0.8 or np.linalg.norm(previous_state.position - previous_oponent_state.position) < 0.2:
             evaluation = traveled_distance - raceline_factor - centerline_factor - 1000
@@ -46,8 +46,8 @@ class LineEvaluation:
             raceline_factor/=5
 
         # Do not pick states that are fully stopped if there is no oponent
-        if oponent_factor == 0 and state.velocity < 0.2:
-            return -100
+        # if oponent_factor == 0 and state.velocity < 0.2:
+        #     return -100
         
         if is_overtaking:
             distance_from_waypoint = np.linalg.norm(state.position - waypoint)
