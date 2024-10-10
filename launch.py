@@ -7,7 +7,7 @@ import os
 def generate_launch_description():
     ld = LaunchDescription()
 
-    maps_folder = '/home/michal/Documents/workspace/f1tenth_racetracks'
+    maps_folder = '/workspaces/f1tenth_workspace/f1tenth_racetracks'
     map = 'Spielberg'
 
     bridge_node = Node(
