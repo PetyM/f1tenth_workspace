@@ -1,6 +1,6 @@
 import numpy as np
 from f1tenth_gym.envs.track import Raceline
-from model import vehicle_dynamics
+from model import vehicle_dynamics, integrate_state
 
 from lineevaluator import LineEvaluation
 from state import State, first_point_on_trajectory_intersecting_circle
@@ -24,7 +24,7 @@ class SamplingPlanner:
         assert n > 0
         self.n: int = n
         self.dt: float = 1 / 60
-        self.prediction_horizont: float = 0.3
+        self.prediction_horizont: float = 0.7
         self.lookahead_distance: float = 4
         
         self.minimum_velocity: float = 0 
@@ -44,22 +44,6 @@ class SamplingPlanner:
         self.lookahead_point: np.ndarray = None
         self.waypoint: np.ndarray = None
         self.overtake_waypoint: np.ndarray = None
-
-        
-        def dynamics(state: np.ndarray, control: np.ndarray) -> np.ndarray:
-            return vehicle_dynamics(state,
-                                          control,
-                                          self.parameters["lf"],
-                                          self.parameters["lr"],
-                                          self.parameters["s_min"],
-                                          self.parameters["s_max"],
-                                          self.parameters["sv_min"],
-                                          self.parameters["sv_max"],
-                                          self.parameters["v_switch"],
-                                          self.parameters["a_max"],
-                                          self.parameters["v_min"],
-                                          self.parameters["v_max"])
-        self.model: function = dynamics
 
     def _convert_state(self, state: list[float]) -> State:
         state = np.array(state, dtype=np.float64)
@@ -99,10 +83,7 @@ class SamplingPlanner:
         new_states = [None] * control.shape[0]
         for i in range(control.shape[0]):
             s = state.internal_state
-            for _ in range(self.future_steps):
-                df = self.model(s, control[i])
-                s = s + (self.dt * df)
-            new_states[i] = State(s, self.centerline, self.raceline)
+            new_states[i] = State(integrate_state(vehicle_dynamics, s, control[i], self.prediction_horizont, self.parameters), self.centerline, self.raceline)
         return new_states
 
     def _evaluate_states(self,
@@ -149,7 +130,7 @@ class SamplingPlanner:
     def plan(self, state: dict, oponent_state: dict, vgain = 1) -> np.ndarray:
         state = self._convert_state(state)
         oponent_state = self._convert_state(oponent_state)
-        next_oponent_position = oponent_state.internal_state + self.prediction_horizont * self.model(oponent_state.internal_state, np.zeros(2))
+        next_oponent_position =integrate_state(vehicle_dynamics, oponent_state.internal_state, np.zeros(2), self.prediction_horizont, self.parameters)
         next_oponent_state = State(next_oponent_position, self.centerline, self.raceline)
         
         waypoint_on_raceline, _, _ = first_point_on_trajectory_intersecting_circle(state.position, self.lookahead_distance, self.raceline, state.index_on_raceline, True)

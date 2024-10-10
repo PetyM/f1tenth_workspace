@@ -69,11 +69,83 @@ def vehicle_dynamics(x, u_init, lf, lr, s_min, s_max, sv_min, sv_max, v_switch, 
     # wheelbase
     lwb = lf + lr
 
-    # system dynamics
-    x_ks = x[0:5]
-
-    f_ks = np.array([x[3]*np.cos(x[4]), x[3]*np.sin(x[4]), u[0], u[1], x[3]/lwb*np.tan(x[2])])
-    
-    f = np.hstack((f_ks, np.array([u[1]/lwb*np.tan(x[2])+x[3]/(lwb*np.cos(x[2])**2)*u[0],0])))
-
+    f = np.array([x[3] * np.cos(x[4]), 
+                  x[3] * np.sin(x[4]), 
+                  u[0], 
+                  u[1], 
+                  x[3] / lwb * np.tan(x[2]), 
+                  u[1] / lwb * np.tan(x[2]) + x[3] / (lwb * np.cos(x[2])**2) * u[0],
+                  0])
     return f
+
+
+def integrate_state(f, x, u, dt, params):
+    k1 = f(
+        x,
+        u,
+        params["lf"],
+        params["lr"],
+        params["s_min"],
+        params["s_max"],
+        params["sv_min"],
+        params["sv_max"],
+        params["v_switch"],
+        params["a_max"],
+        params["v_min"],
+        params["v_max"],
+    )
+
+    k2_state = x + dt * (k1 / 2)
+
+    k2 = f(
+        k2_state,
+        u,
+        params["lf"],
+        params["lr"],
+        params["s_min"],
+        params["s_max"],
+        params["sv_min"],
+        params["sv_max"],
+        params["v_switch"],
+        params["a_max"],
+        params["v_min"],
+        params["v_max"],
+    )
+
+    k3_state = x + dt * (k2 / 2)
+
+    k3 = f(
+        k3_state,
+        u,
+        params["lf"],
+        params["lr"],
+        params["s_min"],
+        params["s_max"],
+        params["sv_min"],
+        params["sv_max"],
+        params["v_switch"],
+        params["a_max"],
+        params["v_min"],
+        params["v_max"],
+    )
+
+    k4_state = x + dt * k3
+
+    k4 = f(
+        k4_state,
+        u,
+        params["lf"],
+        params["lr"],
+        params["s_min"],
+        params["s_max"],
+        params["sv_min"],
+        params["sv_max"],
+        params["v_switch"],
+        params["a_max"],
+        params["v_min"],
+        params["v_max"],
+    )
+
+    # dynamics integration
+    x = x + dt * (1 / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
+    return x
