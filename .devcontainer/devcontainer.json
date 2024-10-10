@@ -12,6 +12,6 @@
 			]
     	}
   	},
-
+	"postStartCommand": "colcon build",
 	"runArgs": ["--gpus","all"]
 }
