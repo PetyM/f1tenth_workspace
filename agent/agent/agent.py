@@ -82,6 +82,7 @@ class Agent(Node):
 
     def update(self):
         if self.ego_state and self.opp_state:
+            start = self.get_clock().now()
             action = self.planner.plan(self.ego_state, self.opp_state, self.velocity_gain)
 
             msg = AckermannDriveStamped()
@@ -89,6 +90,8 @@ class Agent(Node):
             msg.drive.speed = action[1]
             msg.drive.steering_angle = action[0]
             self.drive_publiser.publish(msg)
+
+            self.get_logger().info(f"Agent.update took {(self.get_clock().now() - start).nanoseconds / 1e6} ms", throttle_duration_sec=1)
 
 
 def main():
