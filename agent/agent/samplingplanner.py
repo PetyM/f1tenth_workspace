@@ -190,6 +190,6 @@ class SamplingPlanner:
 
 
         if vgain != 1:
-            return [control_samples[best][0], control_samples[best][1] * vgain]
+            return [control_samples[best][0], control_samples[best][1] * vgain], new_states
 
-        return control_samples[best]
+        return control_samples[best], new_states
