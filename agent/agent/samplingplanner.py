@@ -24,7 +24,7 @@ class SamplingPlanner:
         assert n > 0
         self.n: int = n
         self.dt: float = 1 / 60
-        self.prediction_horizont: float = 0.7
+        self.prediction_horizont: float = 0.3
         self.lookahead_distance: float = 4
         
         self.minimum_velocity: float = 0 
