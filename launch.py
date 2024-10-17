@@ -72,6 +72,14 @@ def generate_launch_description():
                     {'velocity_gain': 0.8}]
     )
 
+    map_evaluator = Node(
+        package='agent',
+        executable='mapevaluator',
+        name='mapevaluator',
+        parameters=[]
+    )
+
+
     # finalize
     ld.add_action(rviz_node)
     ld.add_action(bridge_node)
@@ -81,5 +89,6 @@ def generate_launch_description():
     ld.add_action(opp_robot_publisher)
     ld.add_action(ego_agent_node)
     ld.add_action(opp_agent_node)
+    ld.add_action(map_evaluator)
 
     return ld

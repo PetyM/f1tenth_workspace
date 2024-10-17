@@ -25,7 +25,8 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
-            'agent = agent.agent:main'
+            'agent = agent.agent:main',
+            'mapevaluator = agent.mapevaluator:main'
         ],
     },
 )
