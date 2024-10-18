@@ -1,0 +1,34 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Init",
+        "type": "shell",
+        "command": "colcon build && source install/local_setup.bash",
+        "group": "none",
+        "presentation": {
+          "reveal": "always",
+          "panel": "new",
+          "close": true
+        },
+        "runOptions": {
+          "runOn": "folderOpen"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Launch ROS2",
+        "type": "shell",
+        "command": "colcon build && source install/local_setup.bash && ros2 launch launch.py",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        },
+        "problemMatcher": [],
+      }
+    ]
+  }

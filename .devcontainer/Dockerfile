@@ -21,4 +21,4 @@ RUN git clone -b v1.0.0 https://github.com/f1tenth/f1tenth_gym.git /opt/f1tenth_
     chown -R vscode:vscode /opt/f1tenth_gym && \
     pip3 install --break-system-packages -e /opt/f1tenth_gym
 
-RUN echo "source /opt/ros/jazzy/setup.bash && source /workspaces/f1tenth_workspace/install/local_setup.bash" >> /home/vscode/.bashrc
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /home/vscode/.bashrc
