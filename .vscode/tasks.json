@@ -12,9 +12,10 @@
           "close": true
         },
         "runOptions": {
-          "runOn": "folderOpen"
+          "runOn": "folderOpen",
         },
-        "problemMatcher": []
+        "problemMatcher": [],
+        "hide": true
       },
       {
         "label": "Launch ROS2",
