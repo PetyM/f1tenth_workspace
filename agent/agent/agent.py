@@ -3,6 +3,7 @@ import rclpy.logging
 import rclpy.publisher
 import rclpy.subscription
 import rclpy.time
+import rclpy.timer
 from rclpy.node import Node
 from geometry_msgs.msg import Transform
 from ackermann_msgs.msg import AckermannDriveStamped
@@ -51,8 +52,6 @@ class Agent(Node):
         self.ego_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{agent_namespace}/{state_topic}', self.ego_state_cb, 10)
         self.opp_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{opponent_namespace}/{state_topic}', self.opp_state_cb, 10)
 
-        self.velocity_gain: float = self.get_parameter('velocity_gain').value
-
         params = {"mu": 1.0489, 
                   "C_Sf": 4.718,
                   "C_Sr": 5.4562,
@@ -78,7 +77,11 @@ class Agent(Node):
         centerline_file = pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv")
         raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
 
-        self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file))
+        velocity_gain: float = self.get_parameter('velocity_gain').value
+        self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file), velocity_gain)
+
+        self.timer: rclpy.timer.Timer = self.create_timer(0.05, self.update)
+
 
     def ego_state_cb(self, msg: Float64MultiArray):
         self.ego_state = msg.data
@@ -86,9 +89,9 @@ class Agent(Node):
     def opp_state_cb(self, msg: Float64MultiArray):
         self.opp_state = msg.data
 
-    def publish_predictions(self, states: list[State]):
-        points = np.array([p.position for p in states])
-        points = np.append(points, np.ones((len(states), 1)), axis=1)
+    def publish_predictions(self, predictions: list[State]):
+        points = np.array([p.position for p in predictions])
+        points = np.append(points, np.ones((len(predictions), 1)), axis=1)
         ros_dtype = sensor_msgs.PointField.FLOAT32
         dtype = np.float32
         itemsize = np.dtype(dtype).itemsize 
@@ -102,17 +105,6 @@ class Agent(Node):
         # coordinate frame it is represented in. 
         header = std_msgs.Header()
         header.frame_id = 'map'
-        sensor_msgs.PointCloud2(
-                header=header,
-                height=1, 
-                width=points.shape[0],
-                is_dense=False,
-                is_bigendian=False,
-                fields=fields,
-                point_step=(itemsize * 3),
-                row_step=(itemsize * 3 * points.shape[0]),
-                data=data
-            )
 
         msg = sensor_msgs.PointCloud2(
             header=header,
@@ -130,7 +122,8 @@ class Agent(Node):
     def update(self):
         if self.ego_state and self.opp_state:
             start = self.get_clock().now()
-            action, predictions = self.planner.plan(self.ego_state, self.opp_state, self.velocity_gain)
+            action, predictions = self.planner.plan(self.ego_state, self.opp_state)
+            self.publish_predictions(predictions)
 
             msg = AckermannDriveStamped()
             msg.header.stamp = self.get_clock().now().to_msg()
@@ -138,15 +131,10 @@ class Agent(Node):
             msg.drive.steering_angle = action[0]
             self.drive_publiser.publish(msg)
 
-            self.publish_predictions(predictions)
-
-            self.get_logger().info(f"Agent.update took {(self.get_clock().now() - start).nanoseconds / 1e6} ms", throttle_duration_sec=1)
+            self.get_logger().info(f"(update) state: x={self.ego_state[0]:.2f}, y={self.ego_state[1]:.2f}, theta={self.ego_state[5]:.2f}, v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
 def main():
     rclpy.init()
     agent = Agent()
-    
-    while rclpy.ok():
-        rclpy.spin_once(agent)
-        agent.update()
+    rclpy.spin(agent)
