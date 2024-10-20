@@ -9,11 +9,13 @@ def generate_launch_description():
 
     maps_folder = '/workspaces/f1tenth_workspace/f1tenth_racetracks'
     map = 'Spielberg'
+    log_level = "info"
 
     bridge_node = Node(
         package='f1tenth_gym_ros',
         executable='gym_bridge',
         name='bridge',
+        arguments=["--ros-args", "--log-level", log_level]
     )
     rviz_node = Node(
         package='rviz2',
@@ -64,7 +66,8 @@ def generate_launch_description():
         executable='agent',
         name='ego_agent',
         parameters=[{'map_name': map},
-                    {'map_folder_path': f'{maps_folder}/{map}'}]
+                    {'map_folder_path': f'{maps_folder}/{map}'}],
+        arguments=["--ros-args", "--log-level", log_level]
     )
     
     opp_agent_node = Node(
@@ -74,14 +77,16 @@ def generate_launch_description():
         parameters=[{'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'},
                     {'agent_namespace': 'opp_racecar'},
-                    {'velocity_gain': 0.8}]
+                    {'velocity_gain': 0.8}],
+        arguments=["--ros-args", "--log-level", log_level]
     )
 
     map_evaluator = Node(
         package='agent',
         executable='mapevaluator',
         name='mapevaluator',
-        parameters=[]
+        parameters=[],
+        arguments=["--ros-args", "--log-level", log_level]
     )
 
 
