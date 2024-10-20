@@ -19,7 +19,8 @@ def generate_launch_description():
         package='rviz2',
         executable='rviz2',
         name='rviz',
-        arguments=['-d', os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'launch', 'gym_bridge.rviz')]
+        arguments=['-d', os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'launch', 'gym_bridge.rviz'),
+                   "--ros-args", "--log-level", "warn"]
     )
     map_server_node = Node(
         package='nav2_map_server',
@@ -28,7 +29,8 @@ def generate_launch_description():
                     {'topic': 'map'},
                     {'frame_id': 'map'},
                     {'output': 'screen'},
-                    {'use_sim_time': True}]
+                    {'use_sim_time': True}],
+        arguments=["--ros-args", "--log-level", "warn"]
     )
     nav_lifecycle_node = Node(
         package='nav2_lifecycle_manager',
@@ -37,21 +39,24 @@ def generate_launch_description():
         output='screen',
         parameters=[{'use_sim_time': True},
                     {'autostart': True},
-                    {'node_names': ['map_server']}]
+                    {'node_names': ['map_server']}],
+        arguments=["--ros-args", "--log-level", "warn"]
     )
     ego_robot_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         name='ego_robot_state_publisher',
         parameters=[{'robot_description': Command(['xacro ', os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'launch', 'ego_racecar.xacro')])}],
-        remappings=[('/robot_description', 'ego_robot_description')]
+        remappings=[('/robot_description', 'ego_robot_description')],
+        arguments=["--ros-args", "--log-level", "warn"]
     )
     opp_robot_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         name='opp_robot_state_publisher',
         parameters=[{'robot_description': Command(['xacro ', os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'launch', 'opp_racecar.xacro')])}],
-        remappings=[('/robot_description', 'opp_robot_description')]
+        remappings=[('/robot_description', 'opp_robot_description')],
+        arguments=["--ros-args", "--log-level", "warn"]
     )
 
     ego_agent_node = Node(
