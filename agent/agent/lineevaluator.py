@@ -13,10 +13,7 @@ class LineEvaluation:
                  state: State, 
                  previous_state: State,
                  oponent_state: State, 
-                 previous_oponent_state: State,
-                 waypoint: np.ndarray,
-                 angle_difference: float,
-                 is_overtaking = False) -> float:
+                 previous_oponent_state: State) -> float:
         traveled_distance = np.linalg.norm(state.position - previous_state.position)
 
         # Prefer stable steering inputs
@@ -41,18 +38,10 @@ class LineEvaluation:
             evaluation = traveled_distance - raceline_factor - centerline_factor - 1000
             return evaluation
             
-        if (abs(angle_difference)>0.3):
-            centerline_factor*=5
-            raceline_factor/=5
-
         # Do not pick states that are fully stopped if there is no oponent
         # if oponent_factor == 0 and state.velocity < 0.2:
         #     return -100
         
-        if is_overtaking:
-            distance_from_waypoint = np.linalg.norm(state.position - waypoint)
-            evaluation = traveled_distance - centerline_factor * 0.3 + oponent_factor * 0.2 - distance_from_waypoint * 0.8 - steering_diff * steering_diff_multiplier
-        else:
-            evaluation = traveled_distance - raceline_factor - centerline_factor - steering_diff * steering_diff_multiplier
+        evaluation = traveled_distance - raceline_factor - centerline_factor - steering_diff * steering_diff_multiplier
         
         return evaluation
