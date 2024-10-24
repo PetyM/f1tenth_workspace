@@ -9,7 +9,7 @@ def generate_launch_description():
 
     maps_folder = '/workspaces/f1tenth_workspace/f1tenth_racetracks'
     map = 'Spielberg'
-    log_level = "info"
+    log_level = "warn"
 
     bridge_node = Node(
         package='f1tenth_gym_ros',
