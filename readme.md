@@ -20,3 +20,6 @@
 
 ### Evaluace
 - Když se ohodnocuje jenom koncový stav, nezachytí se kolize na trajektorii
+- Costmapa:
+    - Místo nafouknutí okrajů použít gradient (nebo kombinace)
+    - Lepší evaluace odměny za ujetou vzdálenost od ega
