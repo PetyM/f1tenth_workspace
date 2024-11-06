@@ -12,6 +12,7 @@
 ## Poznámky
 ### Obecné
 - Při rozjezdu na začátku omezit zatáčení (rozjíždět se jenom rovně)
+- Není synchronizovaná mapa v simulátoru s launch.py
 
 ### Samplování
 - Používání klotoid
