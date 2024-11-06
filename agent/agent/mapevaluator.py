@@ -28,16 +28,21 @@ class MapEvaluator(rclpy.node.Node):
         self.declare_parameter('reference_frame', 'map')
         self.declare_parameter('map_topic', '/map')
         self.declare_parameter('costmap_topic', '/costmap')
+        self.declare_parameter('opponent_present', False)
+
+        self.opponent_present: bool = self.get_parameter('opponent_present').value
 
         ego_namespace = self.get_parameter('ego_namespace').value
-        opponent_namespace = self.get_parameter('opponent_namespace').value
         target_frame = self.get_parameter('target_frame').value
         map_topic = self.get_parameter('map_topic').value
         costmap_topic = self.get_parameter('costmap_topic').value
 
         self.ego_frame: str = f'{ego_namespace}/{target_frame}'
-        self.opponent_frame: str = f'{opponent_namespace}/{target_frame}'
         self.reference_frame: str = self.get_parameter('reference_frame').value
+
+        if self.opponent_present:
+            opponent_namespace = self.get_parameter('opponent_namespace').value
+            self.opponent_frame: str = f'{opponent_namespace}/{target_frame}'
 
         self.tf_buffer: Buffer = Buffer(rclpy.time.Duration(seconds=1), self)
         self.tf_listener: TransformListener = TransformListener(self.tf_buffer, self)
@@ -60,16 +65,17 @@ class MapEvaluator(rclpy.node.Node):
         self.evaluation_area_size: int = 199
         self.mask_offset: int = int((self.evaluation_area_size - 1) // 2)
 
-
-        opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
-        opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
-        opponent_mask = scipy.ndimage.gaussian_filter(opponent_mask, sigma=20)
-        self.opponent_mask: np.ndarray = 100 * (opponent_mask / opponent_mask.max())
-
         ego_mask: np.ndarray = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
         ego_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
         ego_mask = scipy.ndimage.gaussian_filter(ego_mask, sigma=20)
         self.ego_mask: np.ndarray = -100 * (ego_mask / ego_mask.max())
+
+        if self.opponent_present:
+            opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
+            opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
+            opponent_mask = scipy.ndimage.gaussian_filter(opponent_mask, sigma=20)
+            self.opponent_mask: np.ndarray = 100 * (opponent_mask / opponent_mask.max())
+
 
     def get_ego_position(self):
         try:
@@ -110,7 +116,6 @@ class MapEvaluator(rclpy.node.Node):
         self.map = scipy.ndimage.morphology.grey_dilation(costmap, footprint=dilation_footprint)
 
 
-
     def map_to_grid_coordinates(self, coordinate: Vector3) -> np.ndarray:
         row = ((coordinate.y - self.map_info.origin.position.y) / self.map_info.resolution)
         column = ((coordinate.x - self.map_info.origin.position.x) / self.map_info.resolution)
@@ -122,20 +127,28 @@ class MapEvaluator(rclpy.node.Node):
             return  
         start = self.get_clock().now()
         ego_position = self.get_ego_position()
-        opponent_position = self.get_opponent_position()
-        if not ego_position or not opponent_position:
+        if not ego_position:
             return
-
+        
         ego_grid_position = self.map_to_grid_coordinates(ego_position)
-        opponent_grid_position = self.map_to_grid_coordinates(opponent_position)
 
-        ego_costmap = np.zeros_like(self.map)
-        ego_costmap[ego_grid_position[0] - self.mask_offset - 1 : ego_grid_position[0] + self.mask_offset, ego_grid_position[1] - self.mask_offset - 1 : ego_grid_position[1] + self.mask_offset] = self.ego_mask
+        if self.opponent_present:
+            opponent_position = self.get_opponent_position()
+            if not opponent_position:
+                return
+            
+            opponent_grid_position = self.map_to_grid_coordinates(opponent_position)
 
-        opponent_costmap = np.zeros_like(self.map)
-        opponent_costmap[opponent_grid_position[0] - self.mask_offset - 1: opponent_grid_position[0] + self.mask_offset, opponent_grid_position[1] - self.mask_offset -1 : opponent_grid_position[1] + self.mask_offset] = self.opponent_mask
+        costmap = np.zeros_like(self.map)
+        costmap[ego_grid_position[0] - self.mask_offset - 1 : ego_grid_position[0] + self.mask_offset, ego_grid_position[1] - self.mask_offset - 1 : ego_grid_position[1] + self.mask_offset] = self.ego_mask
 
-        costmap = np.add(ego_costmap, opponent_costmap)
+        if self.opponent_present:
+            opponent_costmap = np.zeros_like(self.map)
+            opponent_costmap[opponent_grid_position[0] - self.mask_offset - 1: opponent_grid_position[0] + self.mask_offset, opponent_grid_position[1] - self.mask_offset -1 : opponent_grid_position[1] + self.mask_offset] = self.opponent_mask
+
+            costmap = np.add(costmap, opponent_costmap)
+
+
         costmap[self.map > 0] = 100
 
         self.costmap = costmap
@@ -147,7 +160,7 @@ class MapEvaluator(rclpy.node.Node):
         costmap.info = self.map_info
         self.costmap_publisher.publish(costmap)
 
-        self.get_logger().info(f"(update) took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        # self.get_logger().info(f"(update) took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
 def main():

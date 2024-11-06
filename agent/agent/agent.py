@@ -33,24 +33,31 @@ class Agent(Node):
         self.declare_parameter('drive_topic', 'drive')
         self.declare_parameter('predictions_topic', 'predictions')
         self.declare_parameter('velocity_gain', 1.0)
+        self.declare_parameter('opponent_present', False)
 
         self.declare_parameter('map_name', '')
         self.declare_parameter('map_folder_path', '')
 
-        self.ego_state: list[float] = None
-        self.opp_state: list[float] = None
+        self.opponent_present: bool = self.get_parameter('opponent_present').value
 
+        self.ego_state: list[float] = None
         agent_namespace: str = self.get_parameter('agent_namespace').value
-        opponent_namespace: str = self.get_parameter('opponent_namespace').value
         drive_topic: str = self.get_parameter('drive_topic').value
         state_topic: str = self.get_parameter('state_topic').value
+
         predictions_topic: str = self.get_parameter('predictions_topic').value
 
         self.drive_publiser: rclpy.publisher.Publisher = self.create_publisher(AckermannDriveStamped, f'{agent_namespace}/{drive_topic}', 1)
         self.predictions_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{agent_namespace}/{predictions_topic}', 1)
 
         self.ego_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{agent_namespace}/{state_topic}', self.ego_state_cb, 10)
-        self.opp_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{opponent_namespace}/{state_topic}', self.opp_state_cb, 10)
+            
+        if self.opponent_present:
+            self.opp_state: list[float] = None
+            opponent_namespace: str = self.get_parameter('opponent_namespace').value
+            self.opp_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{opponent_namespace}/{state_topic}', self.opp_state_cb, 10)
+        else:
+            self.opp_state: list[float] = [0,0,0,0,0,0,0]
 
         params = {"mu": 1.0489, 
                   "C_Sf": 4.718,
@@ -91,7 +98,7 @@ class Agent(Node):
 
     def publish_predictions(self, predictions: list[State]):
         points = np.array([p.position for p in predictions])
-        points = np.append(points, np.ones((len(predictions), 1)), axis=1)
+        points = np.append(points, 0.1 * np.ones((len(predictions), 1)), axis=1)
         ros_dtype = sensor_msgs.PointField.FLOAT32
         dtype = np.float32
         itemsize = np.dtype(dtype).itemsize 
@@ -120,7 +127,7 @@ class Agent(Node):
         self.predictions_publisher.publish(msg)
 
     def update(self):
-        if self.ego_state and self.opp_state:
+        if self.ego_state and (self.opp_state or not self.opponent_present):
             start = self.get_clock().now()
             action, predictions = self.planner.plan(self.ego_state, self.opp_state)
             self.publish_predictions(predictions)
