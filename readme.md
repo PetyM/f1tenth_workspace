@@ -13,6 +13,7 @@
 ### Obecné
 - Při rozjezdu na začátku omezit zatáčení (rozjíždět se jenom rovně)
 - Není synchronizovaná mapa v simulátoru s launch.py
+- Oponent waypoint follower
 
 ### Samplování
 - Používání klotoid
@@ -24,3 +25,6 @@
 - Costmapa:
     - Místo nafouknutí okrajů použít gradient (nebo kombinace)
     - Lepší evaluace odměny za ujetou vzdálenost od ega
+- Pipeline - nejdrive vyhodit kolize, potom resit zbytek
+- Rozdelit opponent/race score
+- Vyladit jezdeni bez oponenta
