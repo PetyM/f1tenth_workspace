@@ -22,6 +22,8 @@ import pathlib
 import numpy as np
 import scipy.ndimage
 import skimage.segmentation
+from matplotlib import pyplot as plt
+
 
 class MapEvaluator(rclpy.node.Node):
     def __init__(self):
@@ -111,26 +113,27 @@ class MapEvaluator(rclpy.node.Node):
 
 
     def update_map(self, map: OccupancyGrid):
-        self.get_logger().error('Map updated')
+        self.get_logger().info('Starting map update')
         self.map_info = map.info
-        self.get_logger().warn(f"{map.info.origin.position.x}, {map.info.origin.position.y}, {map.info.origin.position.z}")
-        self.get_logger().warn(f"{map.info.origin.orientation.x}, {map.info.origin.orientation.y}, {map.info.origin.orientation.z}, {map.info.origin.orientation.w}")
 
         costmap = np.reshape(map.data, (map.info.height, map.info.width))
-        costmap[costmap >= 0.45] = 1
-        costmap[costmap < 0.45] = 0
+        costmap[costmap > 0] = costmap.max()
 
-        skimage.segmentation.flood_fill(costmap, (0, 0), 255, in_place=True)
-        skimage.segmentation.flood_fill(costmap, (800, 800), 255, in_place=True)
+        # assume map origin (0,0) is position on track (cars start at (0,0) by default)
+        map_origin_in_grid = self.map_to_grid_coordinates(Vector3())
+        # skimage.segmentation.flood_fill(costmap, (map_origin_in_grid[0], map_origin_in_grid[1]), -100, in_place=True)
 
-        track_points = np.argwhere(costmap == 0)
-        for p in track_points:
-                _, distance_from_centerline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), self.raceline)
-                costmap[p] = distance_from_centerline
-        costmap[track_points] = 255 * (costmap[track_points] / np.max(costmap[track_points]))
+        final_costmap = np.full_like(costmap, 100)
+  
+        track_points = skimage.segmentation.flood(costmap, (map_origin_in_grid[0], map_origin_in_grid[1]))
+        # final_costmap[track_points] = 0
+        for p in np.argwhere(track_points):
+            _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), self.raceline)
+            final_costmap[p[0], p[1]] = -10 * distance_from_raceline
 
-        self.map = costmap
-        self.get_logger().error("MAP UPDATE DONE")
+
+        self.map = final_costmap
+        self.get_logger().error(f"Map update done")
 
 
     def map_to_grid_coordinates(self, coordinate: Vector3) -> np.ndarray:
@@ -173,7 +176,7 @@ class MapEvaluator(rclpy.node.Node):
         costmap = np.add(costmap, self.map)
 
 
-        self.costmap = costmap
+        self.costmap = self.map # costmap
 
         costmap = OccupancyGrid()
         costmap.data = self.costmap.reshape((-1)).tobytes()
