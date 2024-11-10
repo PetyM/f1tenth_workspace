@@ -9,7 +9,7 @@ def generate_launch_description():
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
     map = 'Spielberg'
-    log_level = "info"
+    log_level = "warn"
     opponent = False
 
     bridge_node = Node(

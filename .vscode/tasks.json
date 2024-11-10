@@ -4,7 +4,7 @@
       {
         "label": "Init",
         "type": "shell",
-        "command": "colcon build && source install/local_setup.bash",
+        "command": "source /opt/ros/jazzy/setup.bash && colcon build && source install/local_setup.bash",
         "group": "none",
         "presentation": {
           "reveal": "always",
@@ -20,7 +20,7 @@
       {
         "label": "Launch ROS2",
         "type": "shell",
-        "command": "colcon build && source install/local_setup.bash && ros2 launch launch.py",
+        "command": "source /opt/ros/jazzy/setup.bash && colcon build && source install/local_setup.bash && ros2 launch launch.py",
         "group": {
           "kind": "build",
           "isDefault": true
