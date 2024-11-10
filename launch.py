@@ -74,7 +74,8 @@ def generate_launch_description():
         package='agent',
         executable='mapevaluator',
         name='mapevaluator',
-        parameters=[],
+        parameters=[{'map_name': map},
+                    {'map_folder_path': f'{maps_folder}/{map}'}],
         arguments=["--ros-args", "--log-level", 'error']
     )
 

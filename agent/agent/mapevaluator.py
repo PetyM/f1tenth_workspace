@@ -15,8 +15,13 @@ from geometry_msgs.msg import Transform
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from geometry_msgs.msg import Vector3
 
+from f1tenth_gym.envs.track import Raceline
+from state import nearest_point_on_trajectory
+
+import pathlib
 import numpy as np
 import scipy.ndimage
+import skimage.segmentation
 
 class MapEvaluator(rclpy.node.Node):
     def __init__(self):
@@ -29,6 +34,8 @@ class MapEvaluator(rclpy.node.Node):
         self.declare_parameter('map_topic', '/map')
         self.declare_parameter('costmap_topic', '/costmap')
         self.declare_parameter('opponent_present', False)
+        self.declare_parameter('map_name', '')
+        self.declare_parameter('map_folder_path', '')
 
         self.opponent_present: bool = self.get_parameter('opponent_present').value
 
@@ -64,6 +71,14 @@ class MapEvaluator(rclpy.node.Node):
 
         self.evaluation_area_size: int = 199
         self.mask_offset: int = int((self.evaluation_area_size - 1) // 2)
+
+
+        map_name = self.get_parameter('map_name').value
+        map_folder_path = self.get_parameter('map_folder_path').value
+
+        raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
+        raceline = Raceline.from_raceline_file(raceline_file)
+        self.raceline: np.ndarray = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
 
         ego_mask: np.ndarray = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
         ego_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
@@ -102,18 +117,20 @@ class MapEvaluator(rclpy.node.Node):
         self.get_logger().warn(f"{map.info.origin.orientation.x}, {map.info.origin.orientation.y}, {map.info.origin.orientation.z}, {map.info.origin.orientation.w}")
 
         costmap = np.reshape(map.data, (map.info.height, map.info.width))
+        costmap[costmap >= 0.45] = 1
+        costmap[costmap < 0.45] = 0
 
-        dilation_diameter = int(np.ceil((1.2 * self.car_size) / self.map_info.resolution))
-        if dilation_diameter % 2 == 0:
-            dilation_diameter += 1
-        dilation_footprint_radius = np.ceil(dilation_diameter / 2)
+        skimage.segmentation.flood_fill(costmap, (0, 0), 255, in_place=True)
+        skimage.segmentation.flood_fill(costmap, (800, 800), 255, in_place=True)
 
-        dilation_footprint = np.zeros((dilation_diameter, dilation_diameter))
-        rx, ry = np.indices(dilation_footprint.shape)
-        radius_grid = (rx - dilation_footprint_radius)**2 + (ry - dilation_footprint_radius)**2
-        dilation_footprint[radius_grid <= dilation_footprint_radius**2] = 1
+        track_points = np.argwhere(costmap == 0)
+        for p in track_points:
+                _, distance_from_centerline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), self.raceline)
+                costmap[p] = distance_from_centerline
+        costmap[track_points] = 255 * (costmap[track_points] / np.max(costmap[track_points]))
 
-        self.map = scipy.ndimage.morphology.grey_dilation(costmap, footprint=dilation_footprint)
+        self.map = costmap
+        self.get_logger().error("MAP UPDATE DONE")
 
 
     def map_to_grid_coordinates(self, coordinate: Vector3) -> np.ndarray:
@@ -121,6 +138,10 @@ class MapEvaluator(rclpy.node.Node):
         column = ((coordinate.x - self.map_info.origin.position.x) / self.map_info.resolution)
         return np.array([row, column], dtype=int)
 
+    def grid_to_map_coordinates(self, coordinate: np.ndarray) -> np.ndarray:
+        x = (coordinate[1] * self.map_info.resolution) + self.map_info.origin.position.x
+        y = (coordinate[0] * self.map_info.resolution) + self.map_info.origin.position.y
+        return np.array([x, y])
 
     def update(self):
         if self.map is None:
@@ -149,7 +170,8 @@ class MapEvaluator(rclpy.node.Node):
             costmap = np.add(costmap, opponent_costmap)
 
 
-        costmap[self.map > 0] = 100
+        costmap = np.add(costmap, self.map)
+
 
         self.costmap = costmap
 
