@@ -10,7 +10,7 @@ def generate_launch_description():
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
     map = 'Spielberg'
     log_level = "warn"
-    opponent = False
+    opponent = True
 
     bridge_node = Node(
         package='f1tenth_gym_ros',
@@ -104,7 +104,8 @@ def generate_launch_description():
             parameters=[{'map_name': map},
                         {'map_folder_path': f'{maps_folder}/{map}'},
                         {'agent_namespace': 'opp_racecar'},
-                        {'velocity_gain': 0.8}],
+                        {'planner_name': 'purepursuit'},
+                        {'velocity_gain': 0.5}],
             arguments=["--ros-args", "--log-level", log_level]
         )
         

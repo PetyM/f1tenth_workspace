@@ -14,6 +14,7 @@ setup(
         (os.path.join('lib', package_name), [f'{package_name}/lineevaluator.py',
                                              f'{package_name}/model.py',
                                              f'{package_name}/samplingplanner.py',
+                                             f'{package_name}/purepursuitplanner.py',
                                              f'{package_name}/state.py']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py'))
     ],

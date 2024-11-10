@@ -12,6 +12,7 @@ import std_msgs.msg as std_msgs
 from transforms3d import euler
 import numpy as np
 from samplingplanner import SamplingPlanner
+from purepursuitplanner import PurePursuitPlanner
 from state import State
 from std_msgs.msg import Float64MultiArray
 from f1tenth_gym.envs.track import Raceline
@@ -37,7 +38,9 @@ class Agent(Node):
 
         self.declare_parameter('map_name', '')
         self.declare_parameter('map_folder_path', '')
+        self.declare_parameter('planner_name', 'sampling')
 
+        self.planner_name = self.get_parameter('planner_name').value
         self.opponent_present: bool = self.get_parameter('opponent_present').value
 
         self.ego_state: list[float] = None
@@ -84,10 +87,15 @@ class Agent(Node):
         centerline_file = pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv")
         raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
 
-        velocity_gain: float = self.get_parameter('velocity_gain').value
-        self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file), velocity_gain)
+        self.velocity_gain: float = self.get_parameter('velocity_gain').value
+        
+        if self.planner_name == 'sampling':
+            self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file), self.velocity_gain)
+        else:
+            self.lookahead_distance: float = 0.82461887897713965
+            self.planner: PurePursuitPlanner = PurePursuitPlanner(Raceline.from_raceline_file(raceline_file), 0.17145 + 0.15875)
 
-        self.timer: rclpy.timer.Timer = self.create_timer(0.05, self.update)
+        self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update)
 
 
     def ego_state_cb(self, msg: Float64MultiArray):
@@ -129,16 +137,26 @@ class Agent(Node):
     def update(self):
         if self.ego_state and (self.opp_state or not self.opponent_present):
             start = self.get_clock().now()
-            action, predictions = self.planner.plan(self.ego_state, self.opp_state)
-            self.publish_predictions(predictions)
+
+            if self.planner_name == 'sampling':
+                action, predictions = self.planner.plan(self.ego_state, self.opp_state)
+                self.publish_predictions(predictions)
+                speed = action[1]
+                steering_angle = action[0]
+            else:
+                speed, steering_angle  = self.planner.plan(np.float32(self.ego_state[0]), 
+                                                          np.float32(self.ego_state[1]), 
+                                                          np.float32(self.ego_state[4]), 
+                                                          np.float32(self.lookahead_distance), 
+                                                          np.float32(self.velocity_gain))
 
             msg = AckermannDriveStamped()
             msg.header.stamp = self.get_clock().now().to_msg()
-            msg.drive.speed = action[1]
-            msg.drive.steering_angle = action[0]
+            msg.drive.speed = float(speed)
+            msg.drive.steering_angle = float(steering_angle)
             self.drive_publiser.publish(msg)
 
-            self.get_logger().info(f"(update) state: x={self.ego_state[0]:.2f}, y={self.ego_state[1]:.2f}, theta={self.ego_state[5]:.2f}, v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+            self.get_logger().info(f"(update) state: x={self.ego_state[0]:.2f}, y={self.ego_state[1]:.2f}, theta={self.ego_state[4]:.2f}, v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={speed:.2f}, d={steering_angle:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
 def main():
