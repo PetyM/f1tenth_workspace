@@ -23,8 +23,8 @@
 ### Evaluace
 - Když se ohodnocuje jenom koncový stav, nezachytí se kolize na trajektorii
 - Costmapa:
-    - Místo nafouknutí okrajů použít gradient (nebo kombinace)
     - Lepší evaluace odměny za ujetou vzdálenost od ega
+    - zastavit simulaci, než se načte costmapa
 - Pipeline - nejdrive vyhodit kolize, potom resit zbytek
 - Rozdelit opponent/race score
 - Vyladit jezdeni bez oponenta
