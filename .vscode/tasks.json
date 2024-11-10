@@ -2,22 +2,6 @@
     "version": "2.0.0",
     "tasks": [
       {
-        "label": "Init",
-        "type": "shell",
-        "command": "source /opt/ros/jazzy/setup.bash && colcon build && source install/local_setup.bash",
-        "group": "none",
-        "presentation": {
-          "reveal": "always",
-          "panel": "new",
-          "close": true
-        },
-        "runOptions": {
-          "runOn": "folderOpen",
-        },
-        "problemMatcher": [],
-        "hide": true
-      },
-      {
         "label": "Launch ROS2",
         "type": "shell",
         "command": "source /opt/ros/jazzy/setup.bash && colcon build && source install/local_setup.bash && ros2 launch launch.py",
