@@ -121,7 +121,6 @@ class MapEvaluator(rclpy.node.Node):
 
         # assume map origin (0,0) is position on track (cars start at (0,0) by default)
         map_origin_in_grid = self.map_to_grid_coordinates(Vector3())
-        # skimage.segmentation.flood_fill(costmap, (map_origin_in_grid[0], map_origin_in_grid[1]), -100, in_place=True)
 
         final_costmap = np.full_like(costmap, 100)
   

@@ -19,6 +19,7 @@
 - Používání klotoid
 
 ### Simulace controls
+- Zkusit více modelů
 
 ### Evaluace
 - Když se ohodnocuje jenom koncový stav, nezachytí se kolize na trajektorii
