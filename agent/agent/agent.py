@@ -87,15 +87,17 @@ class Agent(Node):
         centerline_file = pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv")
         raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
 
-        self.velocity_gain: float = self.get_parameter('velocity_gain').value
-        
+        velocity_gain = self.get_parameter('velocity_gain').value
+
         if self.planner_name == 'sampling':
-            self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file), self.velocity_gain)
+            self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file), velocity_gain)
+            self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update)
         else:
             self.lookahead_distance: float = 0.82461887897713965
-            self.planner: PurePursuitPlanner = PurePursuitPlanner(Raceline.from_raceline_file(raceline_file), 0.17145 + 0.15875)
+            centerline = Raceline.from_centerline_file(centerline_file)
+            self.planner: PurePursuitPlanner = PurePursuitPlanner(centerline, params["lr"] + params["lf"], 0.82461887897713965, velocity_gain)
 
-        self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update)
+            self.timer: rclpy.timer.Timer = self.create_timer(0.01, self.update)
 
 
     def ego_state_cb(self, msg: Float64MultiArray):
@@ -104,9 +106,10 @@ class Agent(Node):
     def opp_state_cb(self, msg: Float64MultiArray):
         self.opp_state = msg.data
 
-    def publish_predictions(self, predictions: list[State]):
-        points = np.array([p.position for p in predictions])
-        points = np.append(points, 0.1 * np.ones((len(predictions), 1)), axis=1)
+    def publish_predictions(self, predictions: list[np.ndarray]):
+        if predictions is None:
+            return
+        points = np.append(predictions, 0.1 * np.ones((len(predictions), 1)), axis=1)
         ros_dtype = sensor_msgs.PointField.FLOAT32
         dtype = np.float32
         itemsize = np.dtype(dtype).itemsize 
@@ -138,25 +141,17 @@ class Agent(Node):
         if self.ego_state and (self.opp_state or not self.opponent_present):
             start = self.get_clock().now()
 
-            if self.planner_name == 'sampling':
-                action, predictions = self.planner.plan(self.ego_state, self.opp_state)
-                self.publish_predictions(predictions)
-                speed = action[1]
-                steering_angle = action[0]
-            else:
-                speed, steering_angle  = self.planner.plan(np.float32(self.ego_state[0]), 
-                                                          np.float32(self.ego_state[1]), 
-                                                          np.float32(self.ego_state[4]), 
-                                                          np.float32(self.lookahead_distance), 
-                                                          np.float32(self.velocity_gain))
+            action, predictions = self.planner.plan(self.ego_state, self.opp_state)
+
+            self.publish_predictions(predictions)
 
             msg = AckermannDriveStamped()
             msg.header.stamp = self.get_clock().now().to_msg()
-            msg.drive.speed = float(speed)
-            msg.drive.steering_angle = float(steering_angle)
+            msg.drive.speed = float(action[1])
+            msg.drive.steering_angle = float(action[0])
             self.drive_publiser.publish(msg)
 
-            self.get_logger().info(f"(update) state: x={self.ego_state[0]:.2f}, y={self.ego_state[1]:.2f}, theta={self.ego_state[4]:.2f}, v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={speed:.2f}, d={steering_angle:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+            self.get_logger().info(f"(update) state: x={self.ego_state[0]:.2f}, y={self.ego_state[1]:.2f}, theta={self.ego_state[4]:.2f}, v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
 def main():

@@ -176,14 +176,13 @@ class PurePursuitPlanner:
     Example Planner
     """
 
-    def __init__(self, raceline, wb):
+    def __init__(self, raceline, wb, lookahead_distance, vgain):
         self.wheelbase = wb
         self.waypoints = np.flip(np.stack([raceline.xs, raceline.ys, raceline.vxs]).T, 0)
         self.max_reacquire = 20.0
 
-        self.drawn_waypoints = []
-        self.lookahead_point = None
-        self.current_index = None
+        self.lookahead_distance = lookahead_distance
+        self.vgain = vgain
 
     def _get_current_waypoint(
         self, waypoints, lookahead_distance, position, theta
@@ -223,30 +222,21 @@ class PurePursuitPlanner:
         else:
             return None, None
 
-    def plan(self, pose_x, pose_y, pose_theta, lookahead_distance, vgain):
+    def plan(self, pose, opponent_pose):
         """
         gives actuation given observation
         """
+        pose_x = np.float32(pose[0])
+        pose_y = np.float32(pose[1])
+        pose_theta = np.float32(pose[4])
         position = np.array([pose_x, pose_y])
-        lookahead_point, i = self._get_current_waypoint(
-            self.waypoints, lookahead_distance, position, pose_theta
-        )
+        lookahead_point, i = self._get_current_waypoint(self.waypoints, self.lookahead_distance, position, pose_theta)
 
         if lookahead_point is None:
             return [4.0, 0.0], [position]
 
-        # for rendering
-        self.lookahead_point = lookahead_point
-        self.current_index = i
-
         # actuation
-        speed, steering_angle = get_actuation(
-            pose_theta,
-            self.lookahead_point,
-            position,
-            lookahead_distance,
-            self.wheelbase,
-        )
-        speed = vgain * speed
+        speed, steering_angle = get_actuation(pose_theta, lookahead_point, position, self.lookahead_distance, self.wheelbase)
+        speed = self.vgain * speed
 
-        return [steering_angle, speed], [lookahead_point]
+        return [steering_angle, speed], [lookahead_point[:2]]

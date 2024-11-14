@@ -3,7 +3,7 @@ from f1tenth_gym.envs.track import Raceline
 from model import vehicle_dynamics, integrate_state
 
 from lineevaluator import LineEvaluation
-from state import State, first_point_on_trajectory_intersecting_circle
+from state import State
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=np.inf)
@@ -118,4 +118,4 @@ class SamplingPlanner:
         self.next_points = np.array([s.position for s in new_states])
         best = values.argmax()
 
-        return control_samples[best], new_states
+        return control_samples[best], [state.position for state in new_states]
