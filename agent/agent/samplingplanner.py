@@ -15,8 +15,8 @@ class SamplingPlanner:
                  raceline: Raceline,
                  velocity_gain: float) -> None:
         self.parameters: dict = parameters
-        self.centerline: np.ndarray = np.stack([centerline.xs, centerline.ys], dtype=np.float64).T
-        self.raceline: np.ndarray = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
+        self.centerline: np.ndarray = np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
+        self.raceline: np.ndarray = np.flip(np.stack([raceline.xs, raceline.ys], dtype=np.float64).T, 0)
         self.interpolation_factor: float = 0.05
 
         self.evaluator = LineEvaluation(self.centerline, self.raceline)
