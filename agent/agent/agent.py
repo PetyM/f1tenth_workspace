@@ -91,13 +91,12 @@ class Agent(Node):
 
         if self.planner_name == 'sampling':
             self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file), velocity_gain)
-            self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update)
         else:
-            self.lookahead_distance: float = 0.82461887897713965
+            lookahead_distance: float = 2.0
             centerline = Raceline.from_centerline_file(centerline_file)
-            self.planner: PurePursuitPlanner = PurePursuitPlanner(centerline, params["lr"] + params["lf"], 0.82461887897713965, velocity_gain)
+            self.planner: PurePursuitPlanner = PurePursuitPlanner(centerline, params["lr"] + params["lf"], lookahead_distance, 4.0 * velocity_gain)
 
-            self.timer: rclpy.timer.Timer = self.create_timer(0.01, self.update)
+        self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update)
 
 
     def ego_state_cb(self, msg: Float64MultiArray):
