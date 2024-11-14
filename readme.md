@@ -13,7 +13,6 @@
 ### Obecné
 - Při rozjezdu na začátku omezit zatáčení (rozjíždět se jenom rovně)
 - Není synchronizovaná mapa v simulátoru s launch.py
-- Oponent waypoint follower
 
 ### Samplování
 - Používání klotoid
