@@ -178,9 +178,7 @@ class PurePursuitPlanner:
 
     def __init__(self, raceline, wb):
         self.wheelbase = wb
-        self.waypoints = np.stack(
-            [raceline.xs, raceline.ys, raceline.vxs]
-        ).T
+        self.waypoints = np.flip(np.stack([raceline.xs, raceline.ys, raceline.vxs]).T, 0)
         self.max_reacquire = 20.0
 
         self.drawn_waypoints = []
@@ -235,7 +233,7 @@ class PurePursuitPlanner:
         )
 
         if lookahead_point is None:
-            return 4.0, 0.0
+            return [4.0, 0.0], [position]
 
         # for rendering
         self.lookahead_point = lookahead_point
@@ -251,4 +249,4 @@ class PurePursuitPlanner:
         )
         speed = vgain * speed
 
-        return speed, steering_angle
+        return [steering_angle, speed], [lookahead_point]
