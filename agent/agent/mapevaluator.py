@@ -1,3 +1,5 @@
+import PIL.Image
+import PIL.ImageShow
 import scipy.spatial
 import rclpy
 import rclpy.node
@@ -23,7 +25,8 @@ import numpy as np
 import scipy.ndimage
 import skimage.segmentation
 from matplotlib import pyplot as plt
-
+import imageio.v3 as iio
+import yaml
 
 class MapEvaluator(rclpy.node.Node):
     def __init__(self):
@@ -33,7 +36,6 @@ class MapEvaluator(rclpy.node.Node):
         self.declare_parameter('opponent_namespace', 'opp_racecar')
         self.declare_parameter('target_frame', 'base_link')
         self.declare_parameter('reference_frame', 'map')
-        self.declare_parameter('map_topic', '/map')
         self.declare_parameter('costmap_topic', '/costmap')
         self.declare_parameter('opponent_present', False)
         self.declare_parameter('map_name', '')
@@ -43,7 +45,6 @@ class MapEvaluator(rclpy.node.Node):
 
         ego_namespace = self.get_parameter('ego_namespace').value
         target_frame = self.get_parameter('target_frame').value
-        map_topic = self.get_parameter('map_topic').value
         costmap_topic = self.get_parameter('costmap_topic').value
 
         self.ego_frame: str = f'{ego_namespace}/{target_frame}'
@@ -63,9 +64,8 @@ class MapEvaluator(rclpy.node.Node):
                                            history=rclpy.qos.HistoryPolicy.KEEP_LAST,
                                            depth=5)
         
-        self.map_subscriber: rclpy.subscription.Subscription = self.create_subscription(OccupancyGrid, map_topic, self.update_map, qos_profile)
         self.map: np.ndarray = None
-        self.map_info: MapMetaData = None
+        self.map_info: MapMetaData = MapMetaData()
 
         self.costmap_publisher: rclpy.publisher.Publisher = self.create_publisher(OccupancyGrid, costmap_topic, qos_profile)
         self.costmap: np.ndarray = None
@@ -74,18 +74,45 @@ class MapEvaluator(rclpy.node.Node):
         self.evaluation_area_size: int = 199
         self.mask_offset: int = int((self.evaluation_area_size - 1) // 2)
 
-
         map_name = self.get_parameter('map_name').value
         map_folder_path = self.get_parameter('map_folder_path').value
 
+        with open(f"{map_folder_path}/{map_name}_map.yaml", 'r') as file:
+            config = yaml.safe_load(file)
+            self.get_logger().error(f'{config}')
+            self.map_info.resolution = float(config['resolution'])
+
+            self.map_info.origin.position.x = float(config['origin'][0])
+            self.map_info.origin.position.y = float(config['origin'][1])
+            self.map_info.origin.position.z = float(config['origin'][2])
+
+            self.map_info.origin.orientation.x = 0.0
+            self.map_info.origin.orientation.y = 0.0
+            self.map_info.origin.orientation.z = 0.0
+            self.map_info.origin.orientation.w = 1.0
+            self.map_info.map_load_time = self.get_clock().now().to_msg()
+
+
         raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
         raceline = Raceline.from_raceline_file(raceline_file)
-        self.raceline: np.ndarray = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
+        raceline_points = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
 
-        ego_mask: np.ndarray = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
-        ego_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
-        ego_mask = scipy.ndimage.gaussian_filter(ego_mask, sigma=20)
-        self.ego_mask: np.ndarray = -100 * (ego_mask / ego_mask.max())
+        costmap = 255 - np.flip(iio.imread(f"{map_folder_path}/{map_name}_map.png"), 0)
+        costmap = (costmap > 0).astype(np.uint8)
+        self.map_info.width = costmap.shape[0]
+        self.map_info.height = costmap.shape[1]
+        
+        # assume map origin (0,0) is position on track (cars start at (0,0) by default)
+        map_origin_in_grid = self.map_to_grid_coordinates(Vector3())
+
+        track_points = skimage.segmentation.flood(costmap, (map_origin_in_grid[0], map_origin_in_grid[1]))
+
+        final_costmap = np.full_like(costmap, 100)
+        for p in np.argwhere(track_points):
+            _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), raceline_points)
+            final_costmap[p[0], p[1]] = -10 * distance_from_raceline
+
+        self.map = final_costmap
 
         if self.opponent_present:
             opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
@@ -112,38 +139,17 @@ class MapEvaluator(rclpy.node.Node):
             return None
 
 
-    def update_map(self, map: OccupancyGrid):
-        self.get_logger().info('Starting map update')
-        self.map_info = map.info
-
-        costmap = np.reshape(map.data, (map.info.height, map.info.width))
-        costmap[costmap > 0] = costmap.max()
-
-        # assume map origin (0,0) is position on track (cars start at (0,0) by default)
-        map_origin_in_grid = self.map_to_grid_coordinates(Vector3())
-
-        final_costmap = np.full_like(costmap, 100)
-  
-        track_points = skimage.segmentation.flood(costmap, (map_origin_in_grid[0], map_origin_in_grid[1]))
-        # final_costmap[track_points] = 0
-        for p in np.argwhere(track_points):
-            _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), self.raceline)
-            final_costmap[p[0], p[1]] = -10 * distance_from_raceline
-
-
-        self.map = final_costmap
-        self.get_logger().error(f"Map update done")
-
-
     def map_to_grid_coordinates(self, coordinate: Vector3) -> np.ndarray:
         row = ((coordinate.y - self.map_info.origin.position.y) / self.map_info.resolution)
         column = ((coordinate.x - self.map_info.origin.position.x) / self.map_info.resolution)
         return np.array([row, column], dtype=int)
 
+
     def grid_to_map_coordinates(self, coordinate: np.ndarray) -> np.ndarray:
         x = (coordinate[1] * self.map_info.resolution) + self.map_info.origin.position.x
         y = (coordinate[0] * self.map_info.resolution) + self.map_info.origin.position.y
         return np.array([x, y])
+
 
     def update(self):
         if self.map is None:
@@ -163,7 +169,6 @@ class MapEvaluator(rclpy.node.Node):
             opponent_grid_position = self.map_to_grid_coordinates(opponent_position)
 
         costmap = np.zeros_like(self.map)
-        costmap[ego_grid_position[0] - self.mask_offset - 1 : ego_grid_position[0] + self.mask_offset, ego_grid_position[1] - self.mask_offset - 1 : ego_grid_position[1] + self.mask_offset] = self.ego_mask
 
         if self.opponent_present:
             opponent_costmap = np.zeros_like(self.map)
@@ -174,8 +179,7 @@ class MapEvaluator(rclpy.node.Node):
 
         costmap = np.add(costmap, self.map)
 
-
-        self.costmap = self.map # costmap
+        self.costmap = costmap
 
         costmap = OccupancyGrid()
         costmap.data = self.costmap.reshape((-1)).tobytes()
@@ -184,7 +188,7 @@ class MapEvaluator(rclpy.node.Node):
         costmap.info = self.map_info
         self.costmap_publisher.publish(costmap)
 
-        # self.get_logger().info(f"(update) took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.get_logger().info(f"(update) took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
 def main():
