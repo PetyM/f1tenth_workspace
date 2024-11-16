@@ -110,7 +110,8 @@ class MapEvaluator(rclpy.node.Node):
         final_costmap = np.full_like(costmap, 100)
         for p in np.argwhere(track_points):
             _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), raceline_points)
-            final_costmap[p[0], p[1]] = -10 * distance_from_raceline
+            final_costmap[p[0], p[1]] = 100 * min(distance_from_raceline, 2.55)
+        final_costmap[track_points] = 100 * (final_costmap[track_points] / final_costmap[track_points].max())
 
         self.map = final_costmap
 
