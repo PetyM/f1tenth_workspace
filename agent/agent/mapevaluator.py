@@ -4,6 +4,7 @@ import scipy.spatial
 import rclpy
 import rclpy.node
 import rclpy.publisher
+import rclpy.service
 import rclpy.subscription
 import rclpy.time
 import rclpy.timer
@@ -19,6 +20,11 @@ from geometry_msgs.msg import Vector3
 
 from f1tenth_gym.envs.track import Raceline
 from state import nearest_point_on_trajectory
+
+from geometry_msgs.msg import Pose2D
+
+from interfaces.msg import Trajectory
+from interfaces.srv import EvaluateTrajectories
 
 import pathlib
 import numpy as np
@@ -120,6 +126,9 @@ class MapEvaluator(rclpy.node.Node):
             opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
             opponent_mask = scipy.ndimage.gaussian_filter(opponent_mask, sigma=20)
             self.opponent_mask: np.ndarray = 100 * (opponent_mask / opponent_mask.max())
+            
+
+        self.evaluate_service: rclpy.service.Service = self.create_service(EvaluateTrajectories, 'evaluate_trajectories', self.evaluate_trajectories)
 
 
     def get_ego_position(self):
@@ -190,6 +199,33 @@ class MapEvaluator(rclpy.node.Node):
         self.costmap_publisher.publish(costmap)
 
         self.get_logger().info(f"(update) took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+
+
+    def evaluate_trajectories(self, request: EvaluateTrajectories.Request) -> EvaluateTrajectories.Response:
+        values = []
+
+        costmap: np.ndarray = self.costmap.copy()
+
+        trajectory: Trajectory
+        for trajectory in request.trajectories:
+            pose: Pose2D
+            value = 0.0
+            for pose in trajectory.poses:
+                pose_in_grid = self.map_to_grid_coordinates(pose)
+                
+                pose_value = costmap[pose_in_grid]
+
+                if pose_value == 255: # collision
+                    value = -1.0
+                    break
+                
+                value += pose_value
+                
+            values.append(value)
+
+        response = EvaluateTrajectories.Response()
+        response.values = values
+        return response
 
 
 def main():
