@@ -4,9 +4,12 @@ import rclpy.publisher
 import rclpy.subscription
 import rclpy.time
 import rclpy.timer
+import rclpy.qos
+
 from rclpy.node import Node
 from geometry_msgs.msg import Transform
 from ackermann_msgs.msg import AckermannDriveStamped
+import rclpy.wait_for_message
 import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 from transforms3d import euler
@@ -17,6 +20,7 @@ from state import State
 from std_msgs.msg import Float64MultiArray
 from f1tenth_gym.envs.track import Raceline
 import pathlib
+from nav_msgs.msg import OccupancyGrid
 
 def transform_to_array(t: Transform) -> np.ndarray:
     e = euler.quat2euler([t.rotation.w, t.rotation.x, t.rotation.y, t.rotation.z])
@@ -25,6 +29,11 @@ def transform_to_array(t: Transform) -> np.ndarray:
 
 class Agent(Node):
     def __init__(self):
+        qos_profile = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
+                                    durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
+                                    history=rclpy.qos.HistoryPolicy.KEEP_LAST,
+                                    depth=5)
+        rclpy.wait_for_message.wait_for_message(OccupancyGrid, Node('waiter'), '/costmap', qos_profile=qos_profile, time_to_wait=-1)
         super().__init__('agent')
         self.get_logger().info('Agent.init')
 
@@ -91,6 +100,7 @@ class Agent(Node):
 
         if self.planner_name == 'sampling':
             self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file), velocity_gain)
+            
         else:
             lookahead_distance: float = 2.0
             centerline = Raceline.from_centerline_file(centerline_file)
