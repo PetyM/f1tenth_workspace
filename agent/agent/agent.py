@@ -1,4 +1,5 @@
 import rclpy
+import rclpy.client
 import rclpy.logging
 import rclpy.publisher
 import rclpy.subscription
@@ -21,6 +22,10 @@ from std_msgs.msg import Float64MultiArray
 from f1tenth_gym.envs.track import Raceline
 import pathlib
 from nav_msgs.msg import OccupancyGrid
+
+from geometry_msgs.msg import Pose2D
+from interfaces.srv import EvaluateTrajectories
+from interfaces.msg import Trajectory
 
 def transform_to_array(t: Transform) -> np.ndarray:
     e = euler.quat2euler([t.rotation.w, t.rotation.x, t.rotation.y, t.rotation.z])
@@ -108,6 +113,9 @@ class Agent(Node):
 
         self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update)
 
+        self.evaluation_client: rclpy.client.Client = self.create_client(EvaluateTrajectories, 'evaluate_trajectories')
+        self.evaluation_client.wait_for_service()
+
 
     def ego_state_cb(self, msg: Float64MultiArray):
         self.ego_state = msg.data
@@ -151,6 +159,25 @@ class Agent(Node):
             start = self.get_clock().now()
 
             action, predictions = self.planner.plan(self.ego_state, self.opp_state)
+
+            #
+            request = EvaluateTrajectories.Request()
+            for p in [predictions]:
+                trajectory = Trajectory()
+                for pose in p:
+                    k = Pose2D()
+                    k.x = float(pose[0])
+                    k.y = float(pose[1])
+                    trajectory.poses.append(k)
+                request.trajectories.append(trajectory)
+            self.get_logger().error(f'Calling evaluation service for {len(request.trajectories)} trajectories')
+
+            future = self.evaluation_client.call_async(request)
+            rclpy.spin_until_future_complete(self, future)
+            future.result()
+
+            self.get_logger().error(f'Evaluation service result')
+            # 
 
             self.publish_predictions(predictions)
 
