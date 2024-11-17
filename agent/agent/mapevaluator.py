@@ -83,9 +83,22 @@ class MapEvaluator(rclpy.node.Node):
         map_name = self.get_parameter('map_name').value
         map_folder_path = self.get_parameter('map_folder_path').value
 
+        self.prepare_costmap(map_folder_path, map_name)
+
+        if self.opponent_present:
+            opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
+            opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
+            opponent_mask = scipy.ndimage.gaussian_filter(opponent_mask, sigma=20)
+            self.opponent_mask: np.ndarray = 100 * (opponent_mask / opponent_mask.max())
+            
+
+        self.evaluate_service: rclpy.service.Service = self.create_service(EvaluateTrajectories, 'evaluate_trajectories', self.evaluate_trajectories)
+
+
+    def prepare_costmap(self, map_folder_path: str, map_name: str):
         with open(f"{map_folder_path}/{map_name}_map.yaml", 'r') as file:
             config = yaml.safe_load(file)
-            self.get_logger().error(f'{config}')
+
             self.map_info.resolution = float(config['resolution'])
 
             self.map_info.origin.position.x = float(config['origin'][0])
@@ -98,38 +111,39 @@ class MapEvaluator(rclpy.node.Node):
             self.map_info.origin.orientation.w = 1.0
             self.map_info.map_load_time = self.get_clock().now().to_msg()
 
+        costmap_path = pathlib.Path(f'{map_folder_path}/{map_name}_costmap.png')
+        if costmap_path.exists():
+            self.get_logger().error(f'Costmap found. Using previously generated costmap ({costmap_path})')
 
-        raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
-        raceline = Raceline.from_raceline_file(raceline_file)
-        raceline_points = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
-
-        costmap = 255 - np.flip(iio.imread(f"{map_folder_path}/{map_name}_map.png"), 0)
-        costmap = (costmap > 0).astype(np.uint8)
-        self.map_info.width = costmap.shape[0]
-        self.map_info.height = costmap.shape[1]
-        
-        # assume map origin (0,0) is position on track (cars start at (0,0) by default)
-        map_origin_in_grid = self.map_to_grid_coordinates(Vector3())
-
-        track_points = skimage.segmentation.flood(costmap, (map_origin_in_grid[0], map_origin_in_grid[1]))
-
-        final_costmap = np.full_like(costmap, 100)
-        for p in np.argwhere(track_points):
-            _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), raceline_points)
-            final_costmap[p[0], p[1]] = 100 * min(distance_from_raceline, 2.55)
-        final_costmap[track_points] = 100 * (final_costmap[track_points] / final_costmap[track_points].max())
-
-        self.map = final_costmap
-
-        if self.opponent_present:
-            opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
-            opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
-            opponent_mask = scipy.ndimage.gaussian_filter(opponent_mask, sigma=20)
-            self.opponent_mask: np.ndarray = 100 * (opponent_mask / opponent_mask.max())
+            self.map = iio.imread(costmap_path)
             
+        else:
+            self.get_logger().error('Costmap NOT found. Calculating costmap...')
 
-        self.evaluate_service: rclpy.service.Service = self.create_service(EvaluateTrajectories, 'evaluate_trajectories', self.evaluate_trajectories)
+            raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
+            raceline = Raceline.from_raceline_file(raceline_file)
+            raceline_points = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
 
+            costmap = 255 - np.flip(iio.imread(f"{map_folder_path}/{map_name}_map.png"), 0)
+            costmap = (costmap > 0).astype(np.uint8)
+
+            # assume map origin (0,0) is position on track (cars start at (0,0) by default)
+            map_origin_in_grid = self.map_to_grid_coordinates(Vector3())
+
+            track_points = skimage.segmentation.flood(costmap, (map_origin_in_grid[0], map_origin_in_grid[1]))
+
+            final_costmap = np.full_like(costmap, 100)
+            for p in np.argwhere(track_points):
+                _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), raceline_points)
+                final_costmap[p[0], p[1]] = 100 * min(distance_from_raceline, 2.55)
+            final_costmap[track_points] = 100 * (final_costmap[track_points] / final_costmap[track_points].max())
+
+            self.map = final_costmap
+            iio.imwrite(costmap_path, self.map)
+
+        self.map_info.width = self.map.shape[0]
+        self.map_info.height = self.map.shape[1]
+            
 
     def get_ego_position(self):
         try:
