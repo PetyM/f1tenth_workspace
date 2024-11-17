@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 
 class State:
-    def __init__(self, state: np.ndarray, centerline: np.ndarray,raceline: np.ndarray) -> None:
+    def __init__(self, state: np.ndarray) -> None:
         self.internal_state: np.ndarray = state
         self.position: np.ndarray = state[:2]
         self.steering_angle: float = state[2]
@@ -10,16 +10,7 @@ class State:
         self.theta: float = state[4]
         self.theta_velocity: float = state[5]
         self.slip_angle: float = state[6]
-        
-        position_on_centerline, distance_from_centerline, _, index_on_centerline = nearest_point_on_trajectory(self.position, centerline)
-        self.position_on_centerline: np.ndarray = position_on_centerline
-        self.distance_from_centerline: float = distance_from_centerline
-        self.index_on_centerline: int = index_on_centerline
-        
-        position_on_raceline, distance_from_raceline, _, index_on_raceline = nearest_point_on_trajectory(self.position, raceline)
-        self.position_on_raceline: np.ndarray = position_on_raceline
-        self.distance_from_raceline: float = distance_from_raceline
-        self.index_on_raceline: int = index_on_raceline
+
 
 @njit(fastmath=False, cache=True)
 def nearest_point_on_trajectory(point: np.ndarray, trajectory: np.ndarray):

@@ -15,7 +15,8 @@ setup(
                                              f'{package_name}/model.py',
                                              f'{package_name}/samplingplanner.py',
                                              f'{package_name}/purepursuitplanner.py',
-                                             f'{package_name}/state.py']),
+                                             f'{package_name}/state.py',
+                                             f'{package_name}/conversions.py']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py'))
     ],
     install_requires=['setuptools'],

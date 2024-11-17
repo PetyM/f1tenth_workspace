@@ -149,7 +149,7 @@ class MapEvaluator(rclpy.node.Node):
             return None
 
 
-    def map_to_grid_coordinates(self, coordinate: Vector3) -> np.ndarray:
+    def map_to_grid_coordinates(self, coordinate: Vector3|Pose2D) -> np.ndarray:
         row = ((coordinate.y - self.map_info.origin.position.y) / self.map_info.resolution)
         column = ((coordinate.x - self.map_info.origin.position.x) / self.map_info.resolution)
         return np.array([row, column], dtype=int)
@@ -208,8 +208,9 @@ class MapEvaluator(rclpy.node.Node):
         trajectory: Trajectory
         for trajectory in request.trajectories:
             self.get_logger().error(f'Evaluating trajectory of {len(trajectory.poses)} poses')
-            pose: Pose2D
             value = 0.0
+
+            pose: Pose2D
             for pose in trajectory.poses:
                 pose_in_grid = self.map_to_grid_coordinates(pose)
                 

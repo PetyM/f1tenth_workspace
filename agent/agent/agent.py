@@ -104,7 +104,9 @@ class Agent(Node):
         velocity_gain = self.get_parameter('velocity_gain').value
 
         if self.planner_name == 'sampling':
-            self.planner: SamplingPlanner = SamplingPlanner(params, Raceline.from_centerline_file(centerline_file), Raceline.from_raceline_file(raceline_file), velocity_gain)
+            self.evaluation_client: rclpy.client.Client = self.create_client(EvaluateTrajectories, 'evaluate_trajectories')
+            self.evaluation_client.wait_for_service()
+            self.planner: SamplingPlanner = SamplingPlanner(params, velocity_gain, self.evaluate)
             
         else:
             lookahead_distance: float = 2.0
@@ -113,9 +115,11 @@ class Agent(Node):
 
         self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update)
 
-        self.evaluation_client: rclpy.client.Client = self.create_client(EvaluateTrajectories, 'evaluate_trajectories')
-        self.evaluation_client.wait_for_service()
 
+    def evaluate(self, trajectories: list[Trajectory]) -> list[float]:
+        future = self.evaluation_client.call_async(EvaluateTrajectories.Request(trajectories = trajectories))
+        rclpy.spin_until_future_complete(self, future)
+        return future.result().values
 
     def ego_state_cb(self, msg: Float64MultiArray):
         self.ego_state = msg.data
@@ -158,26 +162,7 @@ class Agent(Node):
         if self.ego_state and (self.opp_state or not self.opponent_present):
             start = self.get_clock().now()
 
-            action, predictions = self.planner.plan(self.ego_state, self.opp_state)
-
-            #
-            request = EvaluateTrajectories.Request()
-            for p in [predictions]:
-                trajectory = Trajectory()
-                for pose in p:
-                    k = Pose2D()
-                    k.x = float(pose[0])
-                    k.y = float(pose[1])
-                    trajectory.poses.append(k)
-                request.trajectories.append(trajectory)
-            self.get_logger().error(f'Calling evaluation service for {len(request.trajectories)} trajectories')
-
-            future = self.evaluation_client.call_async(request)
-            rclpy.spin_until_future_complete(self, future)
-            future.result()
-
-            self.get_logger().error(f'Evaluation service result')
-            # 
+            action, predictions = self.planner.plan(self.ego_state)
 
             self.publish_predictions(predictions)
 

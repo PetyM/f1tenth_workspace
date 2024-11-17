@@ -222,7 +222,7 @@ class PurePursuitPlanner:
         else:
             return None, None
 
-    def plan(self, pose, opponent_pose):
+    def plan(self, pose):
         """
         gives actuation given observation
         """
