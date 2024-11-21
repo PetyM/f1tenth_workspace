@@ -9,7 +9,6 @@ def generate_launch_description():
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
     map = 'Spielberg'
-    log_level = "warn"
     opponent = True
 
     bridge_node = Node(
@@ -18,7 +17,7 @@ def generate_launch_description():
         name='bridge',
         parameters=[{'simulate_opponent': opponent},
                     {'map_path': f'{maps_folder}/{map}/{map}_map.png'}],
-        arguments=["--ros-args", "--log-level", log_level]
+        arguments=["--ros-args", "--log-level", "warn"]
     )
 
     rviz_node = Node(
@@ -67,7 +66,7 @@ def generate_launch_description():
         parameters=[{'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'},
                     {'opponent_present': opponent}],
-        arguments=["--ros-args", "--log-level", log_level]
+        arguments=["--ros-args", "--log-level", "warn"]
     )
 
     map_evaluator = Node(
@@ -76,7 +75,7 @@ def generate_launch_description():
         name='mapevaluator',
         parameters=[{'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'}],
-        arguments=["--ros-args", "--log-level", 'error']
+        arguments=["--ros-args", "--log-level", 'warn']
     )
 
     ld.add_action(rviz_node)
@@ -106,7 +105,7 @@ def generate_launch_description():
                         {'agent_namespace': 'opp_racecar'},
                         {'planner_name': 'purepursuit'},
                         {'velocity_gain': 0.5}],
-            arguments=["--ros-args", "--log-level", log_level]
+            arguments=["--ros-args", "--log-level", "warn"]
         )
         
         ld.add_action(opp_agent_node)
