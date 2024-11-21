@@ -233,10 +233,10 @@ class PurePursuitPlanner:
         lookahead_point, i = self._get_current_waypoint(self.waypoints, self.lookahead_distance, position, pose_theta)
 
         if lookahead_point is None:
-            return [4.0, 0.0], [position]
+            return [4.0, 0.0], None
 
         # actuation
         speed, steering_angle = get_actuation(pose_theta, lookahead_point, position, self.lookahead_distance, self.wheelbase)
         speed = self.vgain * speed
 
-        return [steering_angle, speed], [lookahead_point[:2]]
+        return [steering_angle, speed], None

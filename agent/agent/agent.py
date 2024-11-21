@@ -128,10 +128,18 @@ class Agent(Node):
     def opp_state_cb(self, msg: Float64MultiArray):
         self.opp_state = msg.data
 
-    def publish_predictions(self, predictions: list[np.ndarray]):
-        if predictions is None:
+    def publish_predictions(self, trajectories: list[Trajectory]):
+        if trajectories is None:
             return
-        points = np.append(predictions, 0.1 * np.ones((len(predictions), 1)), axis=1)
+        points = []
+
+        trajectory: Trajectory
+        for c, trajectory in enumerate(trajectories):
+            pose: Pose2D
+            for pose in trajectory.poses:
+                points.append(np.array([pose.x, pose.y, 0.1, c]))
+
+        points = np.array(points)
         ros_dtype = sensor_msgs.PointField.FLOAT32
         dtype = np.float32
         itemsize = np.dtype(dtype).itemsize 
@@ -139,7 +147,7 @@ class Agent(Node):
 
         # The fields specify what the bytes represents. The first 4 bytes 
         # represents the x-coordinate, the next 4 the y-coordinate, etc.
-        fields = [sensor_msgs.PointField(name=n, offset=i*itemsize, datatype=ros_dtype, count=1) for i, n in enumerate('xyz')]
+        fields = [sensor_msgs.PointField(name=n, offset=i*itemsize, datatype=ros_dtype, count=1) for i, n in enumerate('xyzc')]
 
         # The PointCloud2 message also has a header which specifies which 
         # coordinate frame it is represented in. 
@@ -153,8 +161,8 @@ class Agent(Node):
             is_dense=False,
             is_bigendian=False,
             fields=fields,
-            point_step=(itemsize * 3), # Every point consists of three float32s.
-            row_step=(itemsize * 3 * points.shape[0]),
+            point_step=(itemsize * 4), # Every point consists of three float32s.
+            row_step=(itemsize * 4 * points.shape[0]),
             data=data
         )
         self.predictions_publisher.publish(msg)
@@ -165,7 +173,7 @@ class Agent(Node):
 
             action, predictions = self.planner.plan(self.ego_state)
 
-            # self.publish_predictions(predictions)
+            self.publish_predictions(predictions)
 
             msg = AckermannDriveStamped()
             msg.header.stamp = self.get_clock().now().to_msg()
