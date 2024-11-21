@@ -1,4 +1,5 @@
 import rclpy
+import rclpy.callback_groups
 import rclpy.client
 import rclpy.logging
 import rclpy.publisher
@@ -113,12 +114,12 @@ class Agent(Node):
             centerline = Raceline.from_centerline_file(centerline_file)
             self.planner: PurePursuitPlanner = PurePursuitPlanner(centerline, params["lr"] + params["lf"], lookahead_distance, 4.0 * velocity_gain)
 
-        self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update)
+        self.timer: rclpy.timer.Timer = self.create_timer(0.03, self.update, callback_group=rclpy.callback_groups.ReentrantCallbackGroup())
 
 
     def evaluate(self, trajectories: list[Trajectory]) -> list[float]:
         future = self.evaluation_client.call_async(EvaluateTrajectories.Request(trajectories = trajectories))
-        rclpy.spin_until_future_complete(self, future)
+        self.executor.spin_until_future_complete(future)
         return future.result().values
 
     def ego_state_cb(self, msg: Float64MultiArray):
@@ -164,7 +165,7 @@ class Agent(Node):
 
             action, predictions = self.planner.plan(self.ego_state)
 
-            self.publish_predictions(predictions)
+            # self.publish_predictions(predictions)
 
             msg = AckermannDriveStamped()
             msg.header.stamp = self.get_clock().now().to_msg()

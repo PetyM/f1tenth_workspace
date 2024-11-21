@@ -216,12 +216,14 @@ class MapEvaluator(rclpy.node.Node):
 
 
     def evaluate_trajectories(self, request: EvaluateTrajectories.Request, response: EvaluateTrajectories.Response) -> EvaluateTrajectories.Response:
-        self.get_logger().error(f'Evaluating {len(request.trajectories)} trajectories')
+        self.get_logger().info(f'Evaluating {len(request.trajectories)} trajectories')
         costmap: np.ndarray = self.costmap.copy()
+
+        values: list[float] = []
 
         trajectory: Trajectory
         for trajectory in request.trajectories:
-            self.get_logger().error(f'Evaluating trajectory of {len(trajectory.poses)} poses')
+            self.get_logger().info(f'Evaluating trajectory of {len(trajectory.poses)} poses')
             value = 0.0
 
             pose: Pose2D
@@ -236,10 +238,11 @@ class MapEvaluator(rclpy.node.Node):
                 
                 value += pose_value
 
-            self.get_logger().error(f'Value {value}')
-            response.values.append(value)
+            self.get_logger().info(f'Value {value}')
+            values.append(float(value))
             
-        self.get_logger().error(f'Evaluating done')
+        response.values = values
+        self.get_logger().info(f'Evaluating done.')
         return response
 
 

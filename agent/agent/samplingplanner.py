@@ -64,9 +64,11 @@ class SamplingPlanner:
         trajectories = [Trajectory()] * control.shape[0]
         for i in range(control.shape[0]):
             s = state.internal_state
+            poses: list[Pose2D] = []
             for _ in range(self.trajectory_points):
                 s = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
-                trajectories[i].poses.append(conversions.array_to_pose(s[:3]))
+                poses.append(conversions.array_to_pose(s[:3]))
+            trajectories[i].poses = poses
         return trajectories
 
 
