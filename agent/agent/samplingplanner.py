@@ -61,12 +61,12 @@ class SamplingPlanner:
  
 
     def _integrate_state(self, state: State, control: np.ndarray) -> list[Trajectory]:
-        trajectories = [Trajectory] * control.shape[0]
+        trajectories = [Trajectory()] * control.shape[0]
         for i in range(control.shape[0]):
             s = state.internal_state
             for _ in range(self.trajectory_points):
                 s = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
-                trajectories[i].poses.append(conversions.array_to_pose(s[:2]))
+                trajectories[i].poses.append(conversions.array_to_pose(s[:3]))
         return trajectories
 
 
