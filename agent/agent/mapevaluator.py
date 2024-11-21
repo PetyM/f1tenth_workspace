@@ -225,7 +225,7 @@ class MapEvaluator(rclpy.node.Node):
         for trajectory in request.trajectories:
             self.get_logger().info(f'Evaluating trajectory of {len(trajectory.poses)} poses')
             value = 0.0
-
+            last_pose: Pose2D = None
             pose: Pose2D
             for pose in trajectory.poses:
                 pose_in_grid = self.map_to_grid_coordinates(pose)
@@ -233,12 +233,16 @@ class MapEvaluator(rclpy.node.Node):
                 pose_value = costmap[pose_in_grid[0], pose_in_grid[1]]
 
                 if pose_value == 255: # collision
-                    value = -1.0
+                    value = np.inf
                     break
                 
+                if last_pose is not None:
+                    pose_value -= np.sqrt((pose.x - last_pose.x)**2 + (pose.y - last_pose.y)**2)
+                
                 value += pose_value
+                last_pose = pose
 
-            self.get_logger().info(f'Value {value}')
+            self.get_logger().info(f'Trajectory value {value}')
             values.append(float(value))
             
         response.values = values
