@@ -36,7 +36,7 @@ class SamplingPlanner:
         self.minimum_steering_angle: float = - np.pi
         self.maximum_steering_angle: float = np.pi
         
-        self.maximum_velocity_difference: float = 0.5
+        self.maximum_velocity_difference: float = 10
         self.maximum_steering_difference: float = np.pi / 2
 
 
@@ -48,27 +48,36 @@ class SamplingPlanner:
     def _sample(self, state: State):   
         g = int(np.sqrt(self.n))
         maximum_steering_difference = self.maximum_steering_difference / (state.velocity**2) if state.velocity > 1 else self.maximum_steering_difference
-        steering_angles = np.linspace(max(state.steering_angle - maximum_steering_difference, self.minimum_steering_angle), 
-                                      min(state.steering_angle + maximum_steering_difference, self.maximum_steering_angle),
+        steering_angles = np.linspace(self.minimum_steering_angle, 
+                                      self.maximum_steering_angle,
                                       g)
-        velocities = np.linspace(max(state.velocity - self.maximum_velocity_difference, self.minimum_velocity), 
-                                 min(state.velocity + self.maximum_velocity_difference, self.maximum_velocity),
+        velocities = np.linspace(self.minimum_velocity, 
+                                 self.maximum_velocity,
                                  g)
 
-        samples = np.stack(np.meshgrid(steering_angles, velocities), axis=2)
-        samples = np.reshape(samples, (-1, 2))
-        return samples
+        samples = []
+        for s in steering_angles:
+            for v in velocities:
+                samples.append([s, v])
+        return np.array(samples)
  
 
     def _integrate_state(self, state: State, control: np.ndarray) -> list[Trajectory]:
         trajectories = [Trajectory()] * control.shape[0]
+
         for i in range(control.shape[0]):
-            s = state.internal_state
+            s = state.internal_state.copy()
+
             poses: list[Pose2D] = []
+            poses.append(conversions.array_to_pose(s[:3]))
+
             for _ in range(self.trajectory_points):
-                s = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
-                poses.append(conversions.array_to_pose(s[:3]))
+                n = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
+                poses.append(conversions.array_to_pose(n[:3]))
+                s = n
+            
             trajectories[i].poses = poses
+        
         return trajectories
 
 
@@ -80,6 +89,6 @@ class SamplingPlanner:
         trajectories = self._integrate_state(state, control_samples)
         values = self.evaluate_function(trajectories)
         
-        best = np.argmax(values)
+        best = np.argmin(values)
 
         return control_samples[best], trajectories
