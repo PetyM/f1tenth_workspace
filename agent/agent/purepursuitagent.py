@@ -172,7 +172,7 @@ def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, whe
     return speed, steering_angle
 
 
-class PurePursuitPlanner(Agent):
+class PurePursuitAgent(Agent):
     def __init__(self):
         super().__init__()
 
@@ -275,5 +275,5 @@ class PurePursuitPlanner(Agent):
 
 def main():
     rclpy.init()
-    agent = PurePursuitPlanner()
+    agent = PurePursuitAgent()
     rclpy.spin(agent)

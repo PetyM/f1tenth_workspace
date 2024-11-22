@@ -13,8 +13,8 @@ setup(
         (f'share/{package_name}', ['package.xml']),
         (os.path.join('lib', package_name), [f'{package_name}/lineevaluator.py',
                                              f'{package_name}/model.py',
-                                             f'{package_name}/samplingplanner.py',
-                                             f'{package_name}/purepursuitplanner.py',
+                                             f'{package_name}/samplingagent.py',
+                                             f'{package_name}/purepursuitagent.py',
                                              f'{package_name}/state.py',
                                              f'{package_name}/conversions.py']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py'))

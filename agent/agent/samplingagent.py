@@ -24,7 +24,7 @@ from interfaces.msg import Trajectory
 import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 
-class SamplingPlanner(Agent):
+class SamplingAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
     
@@ -181,5 +181,5 @@ def main():
                                 depth=5)
     rclpy.wait_for_message.wait_for_message(OccupancyGrid, Node('waiter'), '/costmap', qos_profile=qos_profile, time_to_wait=-1)
 
-    agent = SamplingPlanner()
+    agent = SamplingAgent()
     rclpy.spin(agent)
