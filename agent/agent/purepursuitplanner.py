@@ -1,14 +1,15 @@
+import rclpy
+
 import time
 from typing import Tuple
 
 import gymnasium as gym
 import numpy as np
 from numba import njit
+from agent.agent import Agent
 
-
-"""
-Planner Helpers
-"""
+import pathlib
+from f1tenth_gym.envs.track import Raceline
 
 
 @njit(fastmath=False, cache=True)
@@ -171,18 +172,40 @@ def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, whe
     return speed, steering_angle
 
 
-class PurePursuitPlanner:
-    """
-    Example Planner
-    """
+class PurePursuitPlanner(Agent):
+    def __init__(self):
+        super().__init__()
+        params = {"mu": 1.0489, 
+                  "C_Sf": 4.718,
+                  "C_Sr": 5.4562,
+                  "lf": 0.15875,
+                  "lr": 0.17145,
+                  "h": 0.074,
+                  "m": 3.74,
+                  "I": 0.04712,
+                  "s_min": -0.4189,
+                  "s_max": 0.4189,
+                  "sv_min": -3.2,
+                  "sv_max": 3.2,
+                  "v_switch": 7.319,
+                  "a_max": 9.51,
+                  "v_min": -5.0,
+                  "v_max": 20.0,
+                  "width": 0.31,
+                  "length": 0.58}
 
-    def __init__(self, raceline, wb, lookahead_distance, vgain):
-        self.wheelbase = wb
-        self.waypoints = np.flip(np.stack([raceline.xs, raceline.ys, raceline.vxs]).T, 0)
+        self.wheelbase = params["lr"] + params["lf"]
+
+        map_name = self.get_parameter('map_name').value
+        map_folder_path = self.get_parameter('map_folder_path').value
+        centerline_file = pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv")
+
+        centerline = Raceline.from_centerline_file(centerline_file)
+        self.waypoints = np.flip(np.stack([centerline.xs, centerline.ys, centerline.vxs]).T, 0)
         self.max_reacquire = 20.0
 
-        self.lookahead_distance = lookahead_distance
-        self.vgain = vgain
+        self.lookahead_distance = 2.0
+        self.vgain = self.get_parameter('velocity_gain').value
 
     def _get_current_waypoint(
         self, waypoints, lookahead_distance, position, theta
@@ -222,7 +245,7 @@ class PurePursuitPlanner:
         else:
             return None, None
 
-    def plan(self, pose):
+    def plan(self, pose: list[float]) -> list[float]:
         """
         gives actuation given observation
         """
@@ -233,10 +256,17 @@ class PurePursuitPlanner:
         lookahead_point, i = self._get_current_waypoint(self.waypoints, self.lookahead_distance, position, pose_theta)
 
         if lookahead_point is None:
-            return [4.0, 0.0], None
+            return [4.0, 0.0]
 
         # actuation
         speed, steering_angle = get_actuation(pose_theta, lookahead_point, position, self.lookahead_distance, self.wheelbase)
         speed = self.vgain * speed
 
-        return [steering_angle, speed], None
+        return [steering_angle, speed]
+    
+
+
+def main():
+    rclpy.init()
+    agent = PurePursuitPlanner()
+    rclpy.spin(agent)

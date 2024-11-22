@@ -61,11 +61,9 @@ def generate_launch_description():
 
     ego_agent_node = Node(
         package='agent',
-        executable='agent',
+        executable='samplingagent',
         name='ego_agent',
-        parameters=[{'map_name': map},
-                    {'map_folder_path': f'{maps_folder}/{map}'},
-                    {'opponent_present': opponent}],
+        parameters=[{'opponent_present': opponent}],
         arguments=["--ros-args", "--log-level", "warn"]
     )
 
@@ -98,12 +96,11 @@ def generate_launch_description():
 
         opp_agent_node = Node(
             package='agent',
-            executable='agent',
+            executable='purepursuitagent',
             name='opp_agent',
             parameters=[{'map_name': map},
                         {'map_folder_path': f'{maps_folder}/{map}'},
                         {'agent_namespace': 'opp_racecar'},
-                        {'planner_name': 'purepursuit'},
                         {'velocity_gain': 0.5}],
             arguments=["--ros-args", "--log-level", "warn"]
         )

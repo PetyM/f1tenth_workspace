@@ -1,3 +1,7 @@
+import rclpy
+import rclpy.client
+import rclpy.publisher
+
 import numpy as np
 from f1tenth_gym.envs.track import Raceline
 from model import vehicle_dynamics, integrate_state
@@ -10,21 +14,36 @@ from interfaces.msg import Trajectory
 
 import conversions
 
-import typing
-from typing import Callable
+from agent.agent import Agent
 
+from geometry_msgs.msg import Pose2D
+from interfaces.srv import EvaluateTrajectories
+from interfaces.msg import Trajectory
+import sensor_msgs.msg as sensor_msgs
+import std_msgs.msg as std_msgs
 
-class SamplingPlanner:
-           
-    def __init__(self,
-                 parameters: dict,
-                 velocity_gain: float,
-                 evaluate_function: Callable[[list[Trajectory]], list[float]]) -> None:
-
-        self.parameters: dict = parameters
-        self.interpolation_factor: float = 0.05
-
-        self.evaluate_function: Callable[[list[Trajectory]], list[float]] = evaluate_function
+class SamplingPlanner(Agent):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parameters: dict = {"mu": 1.0489, 
+                                 "C_Sf": 4.718,
+                                 "C_Sr": 5.4562,
+                                 "lf": 0.15875,
+                                 "lr": 0.17145,
+                                 "h": 0.074,
+                                 "m": 3.74,
+                                 "I": 0.04712,
+                                 "s_min": -0.4189,
+                                 "s_max": 0.4189,
+                                 "sv_min": -3.2,
+                                 "sv_max": 3.2,
+                                 "v_switch": 7.319,
+                                 "a_max": 9.51,
+                                 "v_min": -5.0,
+                                 "v_max": 20.0,
+                                 "width": 0.31,
+                                 "length": 0.58}
+        velocity_gain: float = self.get_parameter('velocity_gain').value
 
         self.n: int = 32
         self.prediction_horizont: float = 0.6
@@ -38,6 +57,21 @@ class SamplingPlanner:
         
         self.maximum_velocity_difference: float = 10
         self.maximum_steering_difference: float = np.pi / 2
+
+        agent_namespace: str = self.get_parameter('agent_namespace').value
+        predictions_topic: str = self.get_parameter('predictions_topic').value
+
+        self.predictions_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{agent_namespace}/{predictions_topic}', 1)
+
+
+        self.evaluation_client: rclpy.client.Client = self.create_client(EvaluateTrajectories, 'evaluate_trajectories')
+        self.evaluation_client.wait_for_service()
+
+
+    def evaluate(self, trajectories: list[Trajectory]) -> list[float]:
+        future = self.evaluation_client.call_async(EvaluateTrajectories.Request(trajectories = trajectories))
+        self.executor.spin_until_future_complete(future)
+        return future.result().values
 
 
     def _convert_state(self, state: list[float]) -> State:
@@ -81,14 +115,62 @@ class SamplingPlanner:
         return trajectories
 
 
-    def plan(self, state: dict) -> np.ndarray:
+    def plan(self, state: list[float]) -> list[float]:
         state = self._convert_state(state)
    
         control_samples = self._sample(state)
 
         trajectories = self._integrate_state(state, control_samples)
-        values = self.evaluate_function(trajectories)
+        values = self.evaluate(trajectories)
         
         best = np.argmin(values)
 
-        return control_samples[best], trajectories
+        self.publish_predictions(trajectories)
+
+        return control_samples[best]
+    
+
+    def publish_predictions(self, trajectories: list[Trajectory]):
+        if trajectories is None:
+            return
+        points = []
+
+        trajectory: Trajectory
+        for c, trajectory in enumerate(trajectories):
+            pose: Pose2D
+            for pose in trajectory.poses:
+                points.append(np.array([pose.x, pose.y, 0.1, c]))
+
+        points = np.array(points)
+        ros_dtype = sensor_msgs.PointField.FLOAT32
+        dtype = np.float32
+        itemsize = np.dtype(dtype).itemsize 
+        data = points.astype(dtype).tobytes() 
+
+        # The fields specify what the bytes represents. The first 4 bytes 
+        # represents the x-coordinate, the next 4 the y-coordinate, etc.
+        fields = [sensor_msgs.PointField(name=n, offset=i*itemsize, datatype=ros_dtype, count=1) for i, n in enumerate('xyzc')]
+
+        # The PointCloud2 message also has a header which specifies which 
+        # coordinate frame it is represented in. 
+        header = std_msgs.Header()
+        header.frame_id = 'map'
+
+        msg = sensor_msgs.PointCloud2(
+            header=header,
+            height=1, 
+            width=points.shape[0],
+            is_dense=False,
+            is_bigendian=False,
+            fields=fields,
+            point_step=(itemsize * 4), # Every point consists of three float32s.
+            row_step=(itemsize * 4 * points.shape[0]),
+            data=data
+        )
+        self.predictions_publisher.publish(msg)
+    
+
+def main():
+    rclpy.init()
+    agent = SamplingPlanner()
+    rclpy.spin(agent)
