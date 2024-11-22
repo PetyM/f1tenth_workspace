@@ -93,7 +93,7 @@ class SamplingAgent(Agent):
  
 
     def generate_trajectories(self, state: State, control: np.ndarray) -> list[Trajectory]:
-        trajectories = [Trajectory()] * control.shape[0]
+        trajectories: list[Trajectory] = []
 
         for i in range(control.shape[0]):
             s = state.internal_state.copy()
@@ -102,11 +102,10 @@ class SamplingAgent(Agent):
             poses.append(conversions.array_to_pose(s[:3]))
 
             for _ in range(self.trajectory_points):
-                n = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
-                poses.append(conversions.array_to_pose(n[:3]))
-                s = n
+                s = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
+                poses.append(conversions.array_to_pose(s[:3]))
 
-            trajectories[i].poses = poses
+            trajectories.append(Trajectory(poses=poses))
         
         return trajectories
 
