@@ -175,6 +175,13 @@ def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, whe
 class PurePursuitPlanner(Agent):
     def __init__(self):
         super().__init__()
+
+        self.declare_parameter('map_name', '')
+        self.map_name: str = self.get_parameter('map_name').value
+
+        self.declare_parameter('map_folder_path', '')
+        self.map_folder_path: str = self.get_parameter('map_folder_path').value
+
         params = {"mu": 1.0489, 
                   "C_Sf": 4.718,
                   "C_Sr": 5.4562,
@@ -196,16 +203,15 @@ class PurePursuitPlanner(Agent):
 
         self.wheelbase = params["lr"] + params["lf"]
 
-        map_name = self.get_parameter('map_name').value
-        map_folder_path = self.get_parameter('map_folder_path').value
-        centerline_file = pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv")
+        centerline_file = pathlib.Path(f"{self.map_folder_path}/{self.map_name}_centerline.csv")
 
         centerline = Raceline.from_centerline_file(centerline_file)
         self.waypoints = np.flip(np.stack([centerline.xs, centerline.ys, centerline.vxs]).T, 0)
         self.max_reacquire = 20.0
 
         self.lookahead_distance = 2.0
-        self.vgain = self.get_parameter('velocity_gain').value
+        self.vgain = 4.0 * self.velocity_gain
+
 
     def _get_current_waypoint(
         self, waypoints, lookahead_distance, position, theta
@@ -244,6 +250,7 @@ class PurePursuitPlanner(Agent):
             return wpts[i, :], i
         else:
             return None, None
+
 
     def plan(self, pose: list[float]) -> list[float]:
         """

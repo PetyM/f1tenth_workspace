@@ -1,12 +1,14 @@
 import rclpy
 import rclpy.client
 import rclpy.publisher
+import rclpy.wait_for_message
+
+from rclpy.node import Node
+from nav_msgs.msg import OccupancyGrid
 
 import numpy as np
-from f1tenth_gym.envs.track import Raceline
 from model import vehicle_dynamics, integrate_state
 
-from lineevaluator import LineEvaluation
 from state import State
 
 from geometry_msgs.msg import Pose2D
@@ -25,6 +27,16 @@ import std_msgs.msg as std_msgs
 class SamplingPlanner(Agent):
     def __init__(self) -> None:
         super().__init__()
+    
+        self.declare_parameter('predictions_topic', 'predictions')
+        self.predictions_topic: str = self.get_parameter('predictions_topic').value
+
+        self.predictions_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.predictions_topic}', 1)
+
+        self.evaluation_client: rclpy.client.Client = self.create_client(EvaluateTrajectories, 'evaluate_trajectories')
+        self.evaluation_client.wait_for_service()
+        
+        
         self.parameters: dict = {"mu": 1.0489, 
                                  "C_Sf": 4.718,
                                  "C_Sr": 5.4562,
@@ -43,7 +55,6 @@ class SamplingPlanner(Agent):
                                  "v_max": 20.0,
                                  "width": 0.31,
                                  "length": 0.58}
-        velocity_gain: float = self.get_parameter('velocity_gain').value
 
         self.n: int = 32
         self.prediction_horizont: float = 0.6
@@ -51,21 +62,12 @@ class SamplingPlanner(Agent):
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
         self.minimum_velocity: float = 0 
-        self.maximum_velocity: float = self.parameters["v_max"] * velocity_gain
+        self.maximum_velocity: float = self.parameters["v_max"] * self.velocity_gain
         self.minimum_steering_angle: float = - np.pi
         self.maximum_steering_angle: float = np.pi
         
         self.maximum_velocity_difference: float = 10
         self.maximum_steering_difference: float = np.pi / 2
-
-        agent_namespace: str = self.get_parameter('agent_namespace').value
-        predictions_topic: str = self.get_parameter('predictions_topic').value
-
-        self.predictions_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{agent_namespace}/{predictions_topic}', 1)
-
-
-        self.evaluation_client: rclpy.client.Client = self.create_client(EvaluateTrajectories, 'evaluate_trajectories')
-        self.evaluation_client.wait_for_service()
 
 
     def evaluate(self, trajectories: list[Trajectory]) -> list[float]:
@@ -171,6 +173,13 @@ class SamplingPlanner(Agent):
     
 
 def main():
-    rclpy.init()
+    rclpy.init()    
+    
+    qos_profile = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
+                                durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
+                                history=rclpy.qos.HistoryPolicy.KEEP_LAST,
+                                depth=5)
+    rclpy.wait_for_message.wait_for_message(OccupancyGrid, Node('waiter'), '/costmap', qos_profile=qos_profile, time_to_wait=-1)
+
     agent = SamplingPlanner()
     rclpy.spin(agent)
