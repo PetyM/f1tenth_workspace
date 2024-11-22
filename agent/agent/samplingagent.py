@@ -78,18 +78,16 @@ class SamplingAgent(Agent):
     def generate_samples(self, state: State):   
         g = int(np.sqrt(self.n))
         maximum_steering_difference = self.maximum_steering_difference / (state.velocity**2) if state.velocity > 1 else self.maximum_steering_difference
-        steering_angles = np.linspace(self.minimum_steering_angle, 
-                                      self.maximum_steering_angle,
+        steering_angles = np.linspace(max(state.steering_angle - maximum_steering_difference, self.minimum_steering_angle), 
+                                      min(state.steering_angle + maximum_steering_difference, self.maximum_steering_angle),
                                       g)
-        velocities = np.linspace(self.minimum_velocity, 
-                                 self.maximum_velocity,
+        velocities = np.linspace(max(state.velocity - self.maximum_velocity_difference, self.minimum_velocity), 
+                                 min(state.velocity + self.maximum_velocity_difference, self.maximum_velocity),
                                  g)
 
-        samples = []
-        for s in steering_angles:
-            for v in velocities:
-                samples.append([s, v])
-        return np.array(samples)
+        samples = np.stack(np.meshgrid(steering_angles, velocities), axis=2)
+        samples = np.reshape(samples, (-1, 2))
+        return samples
  
 
     def generate_trajectories(self, state: State, control: np.ndarray) -> list[Trajectory]:
