@@ -27,8 +27,8 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
-            'purepursuitagent = agent.purepursuitplanner:main',
-            'samplingagent = agent.samplingplanner:main',
+            'purepursuitagent = agent.purepursuitagent:main',
+            'samplingagent = agent.samplingagent:main',
             'mapevaluator = agent.mapevaluator:main'
         ],
     },
