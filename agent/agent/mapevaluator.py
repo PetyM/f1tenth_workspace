@@ -233,11 +233,11 @@ class MapEvaluator(rclpy.node.Node):
                 pose_value = costmap[pose_in_grid[0], pose_in_grid[1]]
 
                 if pose_value == 255: # collision
-                    value = np.inf
+                    value = 255
                     break
                 
                 if last_pose is not None:
-                    pose_value -= np.sqrt((pose.x - last_pose.x)**2 + (pose.y - last_pose.y)**2)
+                    pose_value -= 50 * np.sqrt((pose.x - last_pose.x)**2 + (pose.y - last_pose.y)**2)
                 
                 value += pose_value
                 last_pose = pose
