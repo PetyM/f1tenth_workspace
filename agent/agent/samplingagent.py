@@ -70,18 +70,12 @@ class SamplingAgent(Agent):
         self.maximum_steering_difference: float = np.pi / 2
 
 
-    def evaluate(self, trajectories: list[Trajectory]) -> list[float]:
-        future = self.evaluation_client.call_async(EvaluateTrajectories.Request(trajectories = trajectories))
-        self.executor.spin_until_future_complete(future)
-        return future.result().values
-
-
     def _convert_state(self, state: list[float]) -> State:
         state = np.array(state, dtype=np.float64)
         return State(state)
 
 
-    def _sample(self, state: State):   
+    def generate_samples(self, state: State):   
         g = int(np.sqrt(self.n))
         maximum_steering_difference = self.maximum_steering_difference / (state.velocity**2) if state.velocity > 1 else self.maximum_steering_difference
         steering_angles = np.linspace(self.minimum_steering_angle, 
@@ -98,7 +92,7 @@ class SamplingAgent(Agent):
         return np.array(samples)
  
 
-    def _integrate_state(self, state: State, control: np.ndarray) -> list[Trajectory]:
+    def generate_trajectories(self, state: State, control: np.ndarray) -> list[Trajectory]:
         trajectories = [Trajectory()] * control.shape[0]
 
         for i in range(control.shape[0]):
@@ -111,19 +105,25 @@ class SamplingAgent(Agent):
                 n = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
                 poses.append(conversions.array_to_pose(n[:3]))
                 s = n
-            
+
             trajectories[i].poses = poses
         
         return trajectories
 
 
+    def evaluate_trajectories(self, trajectories: list[Trajectory]) -> list[float]:
+        future = self.evaluation_client.call_async(EvaluateTrajectories.Request(trajectories = trajectories))
+        self.executor.spin_until_future_complete(future)
+        return future.result().values
+    
+
     def plan(self, state: list[float]) -> list[float]:
         state = self._convert_state(state)
    
-        control_samples = self._sample(state)
+        control_samples = self.generate_samples(state)
 
-        trajectories = self._integrate_state(state, control_samples)
-        values = self.evaluate(trajectories)
+        trajectories = self.generate_trajectories(state, control_samples)
+        values = self.evaluate_trajectories(trajectories)
         
         best = np.argmin(values)
 
@@ -165,7 +165,7 @@ class SamplingAgent(Agent):
             is_dense=False,
             is_bigendian=False,
             fields=fields,
-            point_step=(itemsize * 4), # Every point consists of three float32s.
+            point_step=(itemsize * 4), # Every point consists of 4 float32s.
             row_step=(itemsize * 4 * points.shape[0]),
             data=data
         )
