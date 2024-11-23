@@ -111,7 +111,7 @@ class MapEvaluator(rclpy.node.Node):
             self.map_info.origin.orientation.w = 1.0
             self.map_info.map_load_time = self.get_clock().now().to_msg()
 
-        costmap_path = pathlib.Path(f'{map_folder_path}/{map_name}_costmap.png')
+        costmap_path = pathlib.Path(f'{map_name}_costmap.png')
         if costmap_path.exists():
             self.get_logger().error(f'Costmap found. Using previously generated costmap ({costmap_path})')
 
