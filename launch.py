@@ -72,7 +72,8 @@ def generate_launch_description():
         executable='mapevaluator',
         name='mapevaluator',
         parameters=[{'map_name': map},
-                    {'map_folder_path': f'{maps_folder}/{map}'}],
+                    {'map_folder_path': f'{maps_folder}/{map}'},
+                    {'opponent_present': opponent}],
         arguments=["--ros-args", "--log-level", 'warn']
     )
 

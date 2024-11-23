@@ -12,15 +12,15 @@ from model import vehicle_dynamics, integrate_state
 from state import State
 
 from geometry_msgs.msg import Pose2D
-from interfaces.msg import Trajectory
+from custom_interfaces.msg import Trajectory
 
 import conversions
 
 from agent.agent import Agent
 
 from geometry_msgs.msg import Pose2D
-from interfaces.srv import EvaluateTrajectories
-from interfaces.msg import Trajectory
+from custom_interfaces.srv import EvaluateTrajectories
+from custom_interfaces.msg import Trajectory
 import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 

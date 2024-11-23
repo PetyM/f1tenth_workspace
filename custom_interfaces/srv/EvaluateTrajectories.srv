@@ -1,0 +1,5 @@
+# Request
+custom_interfaces/Trajectory[] trajectories
+---
+# Response
+float64[] values

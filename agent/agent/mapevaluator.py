@@ -23,8 +23,8 @@ from state import nearest_point_on_trajectory
 
 from geometry_msgs.msg import Pose2D
 
-from interfaces.msg import Trajectory
-from interfaces.srv import EvaluateTrajectories
+from custom_interfaces.msg import Trajectory
+from custom_interfaces.srv import EvaluateTrajectories
 
 import pathlib
 import numpy as np
