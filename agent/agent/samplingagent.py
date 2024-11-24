@@ -56,8 +56,9 @@ class SamplingAgent(Agent):
                                  "width": 0.31,
                                  "length": 0.58}
 
-        self.n: int = 3
-        self.prediction_horizont: float = 0.6
+        self.steering_saples_count: int = 5
+        self.velocity_samples_count: int = 3
+        self.prediction_horizont: float = 1.0
         self.trajectory_points: int = 10
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
@@ -66,8 +67,8 @@ class SamplingAgent(Agent):
         self.minimum_steering_angle: float = - np.pi
         self.maximum_steering_angle: float = np.pi
         
-        self.maximum_velocity_difference: float = 10
-        self.maximum_steering_difference: float = np.pi / 2
+        self.maximum_velocity_difference: float = 5
+        self.maximum_steering_difference: float = np.pi / 4
 
 
     def _convert_state(self, state: list[float]) -> State:
@@ -79,10 +80,10 @@ class SamplingAgent(Agent):
         maximum_steering_difference = self.maximum_steering_difference / (state.velocity**2) if state.velocity > 1 else self.maximum_steering_difference
         steering_angles = np.linspace(max(state.steering_angle - maximum_steering_difference, self.minimum_steering_angle), 
                                       min(state.steering_angle + maximum_steering_difference, self.maximum_steering_angle),
-                                      self.n)
+                                      self.steering_saples_count)
         velocities = np.linspace(max(state.velocity - self.maximum_velocity_difference, self.minimum_velocity), 
                                  min(state.velocity + self.maximum_velocity_difference, self.maximum_velocity),
-                                 self.n)
+                                 self.velocity_samples_count)
 
         samples = np.stack(np.meshgrid(steering_angles, velocities), axis=2)
         samples = np.reshape(samples, (-1, 2))
@@ -121,7 +122,7 @@ class SamplingAgent(Agent):
         trajectories = self.generate_trajectories(state, control_samples)
         trajectories_evaluation = self.evaluate_trajectories(trajectories)
 
-        values = [((e.progress - e.trajectory_cost) if not e.collision else np.inf) for e in trajectories_evaluation]
+        values = [((10 * e.progress - e.trajectory_cost) if not e.collision else -np.inf) for e in trajectories_evaluation]
         
         best = np.argmax(values)
 
