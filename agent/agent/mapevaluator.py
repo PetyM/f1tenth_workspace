@@ -85,6 +85,9 @@ class MapEvaluator(rclpy.node.Node):
 
         self.prepare_costmap(map_folder_path, map_name)
 
+        centerline = Raceline.from_centerline_file(pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv"))
+        self.centerline = np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
+
         if self.opponent_present:
             opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
             opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
@@ -221,6 +224,9 @@ class MapEvaluator(rclpy.node.Node):
 
         values: list[TrajectoryEvaluation] = []
 
+        _, _, _, initial_centerline_index = nearest_point_on_trajectory(np.array([request.trajectories[0].poses[0].x, request.trajectories[0].poses[0].y]), self.centerline)
+
+
         trajectory: Trajectory
         for trajectory in request.trajectories:
             self.get_logger().info(f'Evaluating trajectory of {len(trajectory.poses)} poses')
@@ -238,7 +244,12 @@ class MapEvaluator(rclpy.node.Node):
  
                 evaluation.trajectory_cost = evaluation.trajectory_cost + pose_value
 
-            evaluation.progress = np.sqrt((trajectory.poses[-1].x - trajectory.poses[0].x)**2 + (trajectory.poses[-1].y - trajectory.poses[0].y)**2 )
+            _, _, _, centerline_index = nearest_point_on_trajectory(np.array([trajectory.poses[-1].x, trajectory.poses[-1].y]), self.centerline)
+
+            if centerline_index < initial_centerline_index:
+                evaluation.progress = float(centerline_index + initial_centerline_index - self.centerline.shape[0])
+            else:
+                evaluation.progress = float(centerline_index - initial_centerline_index)
 
             self.get_logger().info(f'{evaluation.progress=}, {evaluation.trajectory_cost=}, {evaluation.collision=}')
             values.append(evaluation)

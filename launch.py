@@ -9,7 +9,7 @@ def generate_launch_description():
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
     map = 'Spielberg'
-    opponent = True
+    opponent = False
 
     bridge_node = Node(
         package='f1tenth_gym_ros',
@@ -74,7 +74,7 @@ def generate_launch_description():
         parameters=[{'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'},
                     {'opponent_present': opponent}],
-        arguments=["--ros-args", "--log-level", 'warn']
+        arguments=["--ros-args", "--log-level", 'info']
     )
 
     ld.add_action(rviz_node)
