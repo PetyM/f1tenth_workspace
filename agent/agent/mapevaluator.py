@@ -23,7 +23,7 @@ from state import nearest_point_on_trajectory
 
 from geometry_msgs.msg import Pose2D
 
-from custom_interfaces.msg import Trajectory
+from custom_interfaces.msg import Trajectory, TrajectoryEvaluation
 from custom_interfaces.srv import EvaluateTrajectories
 
 import pathlib
@@ -219,31 +219,29 @@ class MapEvaluator(rclpy.node.Node):
         self.get_logger().info(f'Evaluating {len(request.trajectories)} trajectories')
         costmap: np.ndarray = self.costmap.copy()
 
-        values: list[float] = []
+        values: list[TrajectoryEvaluation] = []
 
         trajectory: Trajectory
         for trajectory in request.trajectories:
             self.get_logger().info(f'Evaluating trajectory of {len(trajectory.poses)} poses')
-            value = 0.0
-            last_pose: Pose2D = None
+
+            evaluation = TrajectoryEvaluation()
+            
             pose: Pose2D
             for pose in trajectory.poses:
                 pose_in_grid = self.map_to_grid_coordinates(pose)
                 
                 pose_value = costmap[pose_in_grid[0], pose_in_grid[1]]
 
-                if pose_value == 255: # collision
-                    value = 255
-                    break
-                
-                if last_pose is not None:
-                    pose_value -= 50 * np.sqrt((pose.x - last_pose.x)**2 + (pose.y - last_pose.y)**2)
-                
-                value += pose_value
-                last_pose = pose
+                if pose_value >= 100: # collision
+                    evaluation.collision = True
+ 
+                evaluation.trajectory_cost = evaluation.trajectory_cost + pose_value
 
-            self.get_logger().info(f'Trajectory value {value}')
-            values.append(float(value))
+            evaluation.progress = np.sqrt((trajectory.poses[-1].x - trajectory.poses[0].x)**2 + (trajectory.poses[-1].y - trajectory.poses[0].y)**2 )
+
+            self.get_logger().info(f'{evaluation.progress=}, {evaluation.trajectory_cost=}, {evaluation.collision=}')
+            values.append(evaluation)
             
         response.values = values
         self.get_logger().info(f'Evaluating done.')

@@ -20,7 +20,7 @@ from agent.agent import Agent
 
 from geometry_msgs.msg import Pose2D
 from custom_interfaces.srv import EvaluateTrajectories
-from custom_interfaces.msg import Trajectory
+from custom_interfaces.msg import Trajectory, TrajectoryEvaluation
 import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 
@@ -107,7 +107,7 @@ class SamplingAgent(Agent):
         return trajectories
 
 
-    def evaluate_trajectories(self, trajectories: list[Trajectory]) -> list[float]:
+    def evaluate_trajectories(self, trajectories: list[Trajectory]) -> list[TrajectoryEvaluation]:
         future = self.evaluation_client.call_async(EvaluateTrajectories.Request(trajectories = trajectories))
         self.executor.spin_until_future_complete(future)
         return future.result().values
@@ -119,9 +119,11 @@ class SamplingAgent(Agent):
         control_samples = self.generate_samples(state)
 
         trajectories = self.generate_trajectories(state, control_samples)
-        values = self.evaluate_trajectories(trajectories)
+        trajectories_evaluation = self.evaluate_trajectories(trajectories)
+
+        values = [((e.progress - e.trajectory_cost) if not e.collision else np.inf) for e in trajectories_evaluation]
         
-        best = np.argmin(values)
+        best = np.argmax(values)
 
         self.publish_predictions(trajectories)
 
