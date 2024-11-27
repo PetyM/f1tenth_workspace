@@ -83,10 +83,10 @@ class MapEvaluator(rclpy.node.Node):
         map_name = self.get_parameter('map_name').value
         map_folder_path = self.get_parameter('map_folder_path').value
 
-        self.prepare_costmap(map_folder_path, map_name)
-
         centerline = Raceline.from_centerline_file(pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv"))
         self.centerline = np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
+
+        self.prepare_costmap(map_folder_path, map_name)
 
         if self.opponent_present:
             opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
@@ -123,9 +123,9 @@ class MapEvaluator(rclpy.node.Node):
         else:
             self.get_logger().error('Costmap NOT found. Calculating costmap...')
 
-            raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
-            raceline = Raceline.from_raceline_file(raceline_file)
-            raceline_points = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
+            # raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
+            # raceline = Raceline.from_raceline_file(raceline_file)
+            # raceline_points = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
 
             costmap = 255 - np.flip(iio.imread(f"{map_folder_path}/{map_name}_map.png"), 0)
             costmap = (costmap > 0).astype(np.uint8)
@@ -137,9 +137,8 @@ class MapEvaluator(rclpy.node.Node):
 
             final_costmap = np.full_like(costmap, 100)
             for p in np.argwhere(track_points):
-                _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), raceline_points)
-                final_costmap[p[0], p[1]] = 100 * min(distance_from_raceline, 2.55)
-            final_costmap[track_points] = 100 * (final_costmap[track_points] / final_costmap[track_points].max())
+                _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), self.centerline)
+                final_costmap[p[0], p[1]] = distance_from_raceline
 
             self.map = final_costmap
             iio.imwrite(costmap_path, self.map)
@@ -186,7 +185,7 @@ class MapEvaluator(rclpy.node.Node):
         if not ego_position:
             return
         
-        ego_grid_position = self.map_to_grid_coordinates(ego_position)
+        # ego_grid_position = self.map_to_grid_coordinates(ego_position)
 
         if self.opponent_present:
             opponent_position = self.get_opponent_position()

@@ -58,17 +58,17 @@ class SamplingAgent(Agent):
 
         self.steering_saples_count: int = 5
         self.velocity_samples_count: int = 3
-        self.prediction_horizont: float = 1.0
+        self.prediction_horizont: float = 2.0
         self.trajectory_points: int = 10
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
-        self.minimum_velocity: float = 0 
+        self.minimum_velocity: float = 0
         self.maximum_velocity: float = self.parameters["v_max"] * self.velocity_gain
-        self.minimum_steering_angle: float = - np.pi
-        self.maximum_steering_angle: float = np.pi
+        self.minimum_steering_angle: float = self.parameters["s_min"]
+        self.maximum_steering_angle: float = self.parameters["s_max"]
         
-        self.maximum_velocity_difference: float = 5
-        self.maximum_steering_difference: float = np.pi / 4
+        self.maximum_velocity_difference: float = (self.maximum_velocity - self.minimum_velocity) / 5.0
+        self.maximum_steering_difference: float = (self.maximum_steering_angle - self.minimum_steering_angle) / 50.0
 
 
     def _convert_state(self, state: list[float]) -> State:
@@ -77,7 +77,7 @@ class SamplingAgent(Agent):
 
 
     def generate_samples(self, state: State):   
-        maximum_steering_difference = self.maximum_steering_difference / (state.velocity**2) if state.velocity > 1 else self.maximum_steering_difference
+        maximum_steering_difference = self.maximum_steering_difference # / (state.velocity**2) if state.velocity > 1 else self.maximum_steering_difference
         steering_angles = np.linspace(max(state.steering_angle - maximum_steering_difference, self.minimum_steering_angle), 
                                       min(state.steering_angle + maximum_steering_difference, self.maximum_steering_angle),
                                       self.steering_saples_count)
@@ -115,16 +115,34 @@ class SamplingAgent(Agent):
     
 
     def plan(self, state: list[float]) -> list[float]:
-        state = self._convert_state(state)
+        state: State = self._convert_state(state)
    
         control_samples = self.generate_samples(state)
 
         trajectories = self.generate_trajectories(state, control_samples)
         trajectories_evaluation = self.evaluate_trajectories(trajectories)
-
-        values = [((10 * e.progress - e.trajectory_cost) if not e.collision else -np.inf) for e in trajectories_evaluation]
         
-        best = np.argmax(values)
+        assert len(trajectories) == len(trajectories_evaluation), 'Evaluations count doesnt match trajectories count'
+
+        trajectories_evaluated = [(i, trajectories_evaluation[i].progress, trajectories_evaluation[i].trajectory_cost, trajectories_evaluation[i].collision) for i in range(len(trajectories))]
+        trajectories_by_progress = sorted(trajectories_evaluated, key= lambda x: x[1] if not x[3] else -np.inf, reverse=True)
+        trajectories_by_cost = sorted(trajectories_evaluated, key= lambda x: x[2] if not x[3] else np.inf)
+
+        progress_scores = np.array([0] * len(trajectories))
+        cost_scores = np.array([0] * len(trajectories))
+        for i in range(len(trajectories)):
+            progress_scores[trajectories_by_progress[i][0]] = i
+            cost_scores[trajectories_by_cost[i][0]] = i
+    
+        combined_scores = progress_scores + (state.velocity / self.maximum_velocity) * cost_scores
+
+        best = np.argmin(combined_scores)
+
+        self.get_logger().error(f'Steering: {np.array2string(control_samples[:, 0], precision=2)}')
+        self.get_logger().error(f'Speed:    {np.array2string(control_samples[:, 1])}')
+        self.get_logger().error(f'Progress: {np.array2string(progress_scores)}')
+        self.get_logger().error(f'Cost:     {np.array2string(cost_scores)}')   
+        self.get_logger().error(f'Combined: {np.array2string(combined_scores)}') 
 
         self.publish_predictions(trajectories)
 
