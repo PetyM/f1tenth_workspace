@@ -13,9 +13,11 @@
 ### Obecné
 - Při rozjezdu na začátku omezit zatáčení (rozjíždět se jenom rovně)
 - Není synchronizovaná mapa v simulátoru s launch.py
+- zpomalit cas (vlastni publisher na cas), nebo nahrat rosbag a prehravat zpomalene
 
 ### Samplování
 - Používání klotoid
+- zlepsit limity pro generovani samplu
 
 ### Simulace controls
 - Zkusit více modelů
@@ -28,3 +30,6 @@
 - Pipeline - nejdrive vyhodit kolize, potom resit zbytek
 - Rozdelit opponent/race score
 - Vyladit jezdeni bez oponenta
+- pridat orientaci auta do vyhodnoceni
+- napocitat vektory s orientaci
+- odladit na centerline
