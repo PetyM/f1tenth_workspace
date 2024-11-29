@@ -57,7 +57,7 @@ class SamplingAgent(Agent):
                                  "length": 0.58}
 
         self.steering_saples_count: int = 5
-        self.velocity_samples_count: int = 3
+        self.velocity_samples_count: int = 4
         self.prediction_horizont: float = 2.0
         self.trajectory_points: int = 10
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
@@ -124,13 +124,24 @@ class SamplingAgent(Agent):
         
         assert len(trajectories) == len(trajectories_evaluation), 'Evaluations count doesnt match trajectories count'
 
-        trajectories_evaluated = [(i, trajectories_evaluation[i].progress, trajectories_evaluation[i].trajectory_cost, trajectories_evaluation[i].collision) for i in range(len(trajectories))]
-        trajectories_by_progress = sorted(trajectories_evaluated, key= lambda x: x[1] if not x[3] else -np.inf, reverse=True)
-        trajectories_by_cost = sorted(trajectories_evaluated, key= lambda x: x[2] if not x[3] else np.inf)
+        trajectories_evaluated = []
+        control_samples_filtered = []
+        i = 0
+        for sample, evaluation in zip(control_samples, trajectories_evaluation):
+            if not evaluation.collision:
+                trajectories_evaluated.append([i, evaluation.progress, evaluation.trajectory_cost])
+                control_samples_filtered.append(sample)
+                i += 1
 
-        progress_scores = np.array([0] * len(trajectories))
-        cost_scores = np.array([0] * len(trajectories))
-        for i in range(len(trajectories)):
+        if len(control_samples_filtered) == 0:
+            return [0, 0]
+        
+        trajectories_by_progress = sorted(trajectories_evaluated, key= lambda x: x[1], reverse=True)
+        trajectories_by_cost = sorted(trajectories_evaluated, key= lambda x: x[2])
+
+        progress_scores = np.array([0] * len(trajectories_evaluated))
+        cost_scores = np.array([0] * len(trajectories_evaluated))
+        for i in range(len(trajectories_evaluated)):
             progress_scores[trajectories_by_progress[i][0]] = i
             cost_scores[trajectories_by_cost[i][0]] = i
     
@@ -138,15 +149,15 @@ class SamplingAgent(Agent):
 
         best = np.argmin(combined_scores)
 
-        self.get_logger().error(f'Steering: {np.array2string(control_samples[:, 0], precision=2)}')
-        self.get_logger().error(f'Speed:    {np.array2string(control_samples[:, 1])}')
-        self.get_logger().error(f'Progress: {np.array2string(progress_scores)}')
-        self.get_logger().error(f'Cost:     {np.array2string(cost_scores)}')   
-        self.get_logger().error(f'Combined: {np.array2string(combined_scores)}') 
+        self.get_logger().info(f'Steering: {np.array2string(control_samples[:, 0], precision=2)}')
+        self.get_logger().info(f'Speed:    {np.array2string(control_samples[:, 1])}')
+        self.get_logger().info(f'Progress: {np.array2string(progress_scores)}')
+        self.get_logger().info(f'Cost:     {np.array2string(cost_scores)}')   
+        self.get_logger().info(f'Combined: {np.array2string(combined_scores)}') 
 
         self.publish_predictions(trajectories)
 
-        return control_samples[best]
+        return control_samples_filtered[best]
     
 
     def publish_predictions(self, trajectories: list[Trajectory]):
