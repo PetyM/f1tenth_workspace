@@ -218,6 +218,7 @@ class MapEvaluator(rclpy.node.Node):
 
 
     def evaluate_trajectories(self, request: EvaluateTrajectories.Request, response: EvaluateTrajectories.Response) -> EvaluateTrajectories.Response:
+        start = self.get_clock().now()
         self.get_logger().info(f'Evaluating {len(request.trajectories)} trajectories')
         costmap: np.ndarray = self.costmap.copy()
 
@@ -254,7 +255,7 @@ class MapEvaluator(rclpy.node.Node):
             values.append(evaluation)
             
         response.values = values
-        self.get_logger().info(f'Evaluating done.')
+        self.get_logger().error(f"Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
         return response
 
 

@@ -57,17 +57,17 @@ class SamplingAgent(Agent):
                                  "length": 0.58}
 
         self.steering_saples_count: int = 5
-        self.velocity_samples_count: int = 4
+        self.velocity_samples_count: int = 3
         self.prediction_horizont: float = 2.0
-        self.trajectory_points: int = 10
+        self.trajectory_points: int = 5
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
-        self.minimum_velocity: float = 0
-        self.maximum_velocity: float = self.parameters["v_max"] * self.velocity_gain
-        self.minimum_steering_angle: float = self.parameters["s_min"]
-        self.maximum_steering_angle: float = self.parameters["s_max"]
+        self.minimum_velocity: float = 0.0
+        self.maximum_velocity: float = 0.7 * self.parameters["v_max"] * self.velocity_gain
+        self.minimum_steering_angle: float = 0.7 * self.parameters["s_min"]
+        self.maximum_steering_angle: float = 0.7 * self.parameters["s_max"]
         
-        self.maximum_velocity_difference: float = (self.maximum_velocity - self.minimum_velocity) / 5.0
+        self.maximum_velocity_difference: float = (self.maximum_velocity - self.minimum_velocity) / 10.0
         self.maximum_steering_difference: float = (self.maximum_steering_angle - self.minimum_steering_angle) / 50.0
 
 
@@ -120,6 +120,9 @@ class SamplingAgent(Agent):
         control_samples = self.generate_samples(state)
 
         trajectories = self.generate_trajectories(state, control_samples)
+
+        self.publish_predictions(trajectories)
+
         trajectories_evaluation = self.evaluate_trajectories(trajectories)
         
         assert len(trajectories) == len(trajectories_evaluation), 'Evaluations count doesnt match trajectories count'
@@ -154,8 +157,6 @@ class SamplingAgent(Agent):
         self.get_logger().info(f'Progress: {np.array2string(progress_scores)}')
         self.get_logger().info(f'Cost:     {np.array2string(cost_scores)}')   
         self.get_logger().info(f'Combined: {np.array2string(combined_scores)}') 
-
-        self.publish_predictions(trajectories)
 
         return control_samples_filtered[best]
     
