@@ -234,7 +234,7 @@ class MapEvaluator(rclpy.node.Node):
             
             pose: Pose2D
             for pose in trajectory.poses:
-                pose_in_grid = self.map_to_grid_coordinates(pose)
+                pose_in_grid = self.map_to_grid_coordinates(pose).clip([0, 0], [self.map_info.width - 1, self.map_info.height - 1])
                 
                 pose_value = costmap[pose_in_grid[0], pose_in_grid[1]]
 
