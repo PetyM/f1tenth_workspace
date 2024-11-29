@@ -129,6 +129,12 @@ class MapEvaluator(rclpy.node.Node):
 
             costmap = 255 - np.flip(iio.imread(f"{map_folder_path}/{map_name}_map.png"), 0)
             costmap = (costmap > 0).astype(np.uint8)
+            
+            dilation_footprint = np.zeros((4, 4))
+            rx, ry = np.indices(dilation_footprint.shape)
+            radius_grid = (rx - 2)**2 + (ry - 2)**2
+            dilation_footprint[radius_grid <= 2**2] = 1
+            costmap = scipy.ndimage.morphology.grey_dilation(costmap, footprint=dilation_footprint)
 
             # assume map origin (0,0) is position on track (cars start at (0,0) by default)
             map_origin_in_grid = self.map_to_grid_coordinates(Vector3())
@@ -138,7 +144,7 @@ class MapEvaluator(rclpy.node.Node):
             final_costmap = np.full_like(costmap, 100)
             for p in np.argwhere(track_points):
                 _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), self.centerline)
-                final_costmap[p[0], p[1]] = distance_from_raceline
+                final_costmap[p[0], p[1]] = 100 * distance_from_raceline
 
             self.map = final_costmap
             iio.imwrite(costmap_path, self.map)
