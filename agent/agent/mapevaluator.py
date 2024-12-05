@@ -261,7 +261,7 @@ class MapEvaluator(rclpy.node.Node):
             values.append(evaluation)
             
         response.values = values
-        self.get_logger().error(f"Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.get_logger().info(f"Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
         return response
 
 
