@@ -62,7 +62,7 @@ class SamplingAgent(Agent):
         self.steering_saples_count: int = 5
         self.velocity_samples_count: int = 3
         self.prediction_horizont: float = 2.0
-        self.trajectory_points: int = 5
+        self.trajectory_points: int = 10
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
         self.minimum_velocity: float = 0.0
@@ -71,7 +71,7 @@ class SamplingAgent(Agent):
         self.maximum_steering_angle: float = 0.7 * self.parameters["s_max"]
         
         self.maximum_velocity_difference: float = (self.maximum_velocity - self.minimum_velocity) / 10.0
-        self.maximum_steering_difference: float = (self.maximum_steering_angle - self.minimum_steering_angle) / 50.0
+        self.maximum_steering_difference: float = (self.maximum_steering_angle - self.minimum_steering_angle) / 10.0
 
 
     def _convert_state(self, state: list[float]) -> State:
@@ -81,9 +81,19 @@ class SamplingAgent(Agent):
 
     def generate_samples(self, state: State):   
         maximum_steering_difference = self.maximum_steering_difference # / (state.velocity**2) if state.velocity > 1 else self.maximum_steering_difference
-        steering_angles = np.linspace(max(state.steering_angle - maximum_steering_difference, self.minimum_steering_angle), 
-                                      min(state.steering_angle + maximum_steering_difference, self.maximum_steering_angle),
-                                      self.steering_saples_count)
+
+        maximum_steering = state.steering_angle + maximum_steering_difference
+        minimum_steering = state.steering_angle - maximum_steering_difference
+
+        if maximum_steering > self.maximum_steering_angle:
+            maximum_steering = self.maximum_steering_angle
+            minimum_steering = max(-self.minimum_steering_angle, maximum_steering - 2 * maximum_steering_difference)
+        elif minimum_steering < -self.maximum_steering_angle:
+            minimum_steering = -self.minimum_steering_angle
+            maximum_steering = min(self.maximum_steering_angle, minimum_steering + 2 * maximum_steering_difference)
+        
+        steering_angles = np.linspace(minimum_steering, maximum_steering, self.steering_saples_count)
+        
         velocities = np.linspace(max(state.velocity - self.maximum_velocity_difference, self.minimum_velocity), 
                                  min(state.velocity + self.maximum_velocity_difference, self.maximum_velocity),
                                  self.velocity_samples_count)
@@ -124,6 +134,8 @@ class SamplingAgent(Agent):
 
         trajectories = self.generate_trajectories(state, control_samples)
 
+        assert len(control_samples) == len(trajectories), 'Trajectories count doesnt match samples count'
+
         self.publish_predictions(trajectories)
 
         trajectories_evaluation = self.evaluate_trajectories(trajectories)
@@ -153,17 +165,13 @@ class SamplingAgent(Agent):
             progress_scores[trajectories_by_progress[i][0]] = i
             cost_scores[trajectories_by_cost[i][0]] = i
     
-        combined_scores = progress_scores + (state.velocity / self.maximum_velocity) * cost_scores
+        relative_velocity = state.velocity / self.maximum_velocity
+        cost_factor = 0.8 + 0.5 * (relative_velocity - 0.5)
+        combined_scores = progress_scores + cost_factor * cost_scores
 
         best = np.argmin(combined_scores)
 
         self.publish_followed_trajectory(trajectories_filtered[best])
-
-        self.get_logger().info(f'Steering: {np.array2string(control_samples[:, 0], precision=2)}')
-        self.get_logger().info(f'Speed:    {np.array2string(control_samples[:, 1])}')
-        self.get_logger().info(f'Progress: {np.array2string(progress_scores)}')
-        self.get_logger().info(f'Cost:     {np.array2string(cost_scores)}')   
-        self.get_logger().info(f'Combined: {np.array2string(combined_scores)}') 
 
         return control_samples_filtered[best]
     
