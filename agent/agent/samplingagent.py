@@ -29,9 +29,12 @@ class SamplingAgent(Agent):
         super().__init__()
     
         self.declare_parameter('predictions_topic', 'predictions')
+        self.declare_parameter('followed_trajectory_topic', 'followed_trajectory')
         self.predictions_topic: str = self.get_parameter('predictions_topic').value
+        self.followed_trajectory_topic: str = self.get_parameter('followed_trajectory_topic').value
 
         self.predictions_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.predictions_topic}', 1)
+        self.followed_trajectory_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.followed_trajectory_topic}', 1)
 
         self.evaluation_client: rclpy.client.Client = self.create_client(EvaluateTrajectories, 'evaluate_trajectories')
         self.evaluation_client.wait_for_service()
@@ -129,11 +132,13 @@ class SamplingAgent(Agent):
 
         trajectories_evaluated = []
         control_samples_filtered = []
+        trajectories_filtered = []
         i = 0
-        for sample, evaluation in zip(control_samples, trajectories_evaluation):
+        for sample, trajectory, evaluation in zip(control_samples, trajectories, trajectories_evaluation):
             if not evaluation.collision:
                 trajectories_evaluated.append([i, evaluation.progress, evaluation.trajectory_cost])
                 control_samples_filtered.append(sample)
+                trajectories_filtered.append(trajectory)
                 i += 1
 
         if len(control_samples_filtered) == 0:
@@ -151,6 +156,8 @@ class SamplingAgent(Agent):
         combined_scores = progress_scores + (state.velocity / self.maximum_velocity) * cost_scores
 
         best = np.argmin(combined_scores)
+
+        self.publish_followed_trajectory(trajectories_filtered[best])
 
         self.get_logger().info(f'Steering: {np.array2string(control_samples[:, 0], precision=2)}')
         self.get_logger().info(f'Speed:    {np.array2string(control_samples[:, 1])}')
@@ -199,6 +206,39 @@ class SamplingAgent(Agent):
             data=data
         )
         self.predictions_publisher.publish(msg)
+    
+
+    def publish_followed_trajectory(self, trajectory: Trajectory):
+        if trajectory is None:
+            return
+        points = []
+
+        pose: Pose2D
+        for pose in trajectory.poses:
+            points.append(np.array([pose.x, pose.y, 0.1]))
+
+        points = np.array(points)
+        ros_dtype = sensor_msgs.PointField.FLOAT32
+        dtype = np.float32
+        itemsize = np.dtype(dtype).itemsize 
+        data = points.astype(dtype).tobytes() 
+
+        fields = [sensor_msgs.PointField(name=n, offset=i*itemsize, datatype=ros_dtype, count=1) for i, n in enumerate('xyz')]
+        header = std_msgs.Header()
+        header.frame_id = 'map'
+
+        msg = sensor_msgs.PointCloud2(
+            header=header,
+            height=1, 
+            width=points.shape[0],
+            is_dense=False,
+            is_bigendian=False,
+            fields=fields,
+            point_step=(itemsize * 3), # Every point consists of 4 float32s.
+            row_step=(itemsize * 3 * points.shape[0]),
+            data=data
+        )
+        self.followed_trajectory_publisher.publish(msg)
     
 
 def main():
