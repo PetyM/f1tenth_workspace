@@ -163,8 +163,8 @@ class MapEvaluatingAgent(Agent):
         costmap.header.frame_id = "map"
         costmap.header.stamp = self.get_clock().now().to_msg()
         costmap.info = self.map_info
-        self.costmap_publisher.publish(costmap)
 
+        self.costmap_publisher.publish(costmap)
         self.get_logger().info(f"(update) took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
