@@ -16,8 +16,6 @@ from state import nearest_point_on_trajectory
 
 from geometry_msgs.msg import Pose2D
 
-from custom_interfaces.msg import Trajectory, TrajectoryEvaluation
-from custom_interfaces.srv import EvaluateTrajectories
 
 import pathlib
 import numpy as np
@@ -25,7 +23,9 @@ import scipy.ndimage
 import skimage.segmentation
 import imageio.v3 as iio
 import yaml
+
 from agent.agentbase import AgentBase
+from agent.trajectory import Trajectory, TrajectoryEvaluation
 
 class MapEvaluatingAgentBase(AgentBase):
     def __init__(self):
@@ -191,7 +191,7 @@ class MapEvaluatingAgentBase(AgentBase):
                 if pose_value >= 100: # collision
                     evaluation.collision = True
  
-                evaluation.trajectory_cost = evaluation.trajectory_cost + pose_value
+                evaluation.cost = evaluation.cost + pose_value
 
             _, _, _, centerline_index = nearest_point_on_trajectory(np.array([trajectory.poses[-1].x, trajectory.poses[-1].y]), self.centerline)
 
@@ -200,7 +200,7 @@ class MapEvaluatingAgentBase(AgentBase):
             else:
                 evaluation.progress = float(centerline_index - initial_centerline_index)
 
-            self.get_logger().info(f'{evaluation.progress=}, {evaluation.trajectory_cost=}, {evaluation.collision=}')
+            self.get_logger().info(f'{evaluation.progress=}, {evaluation.cost=}, {evaluation.collision=}')
             values.append(evaluation)
             
         self.get_logger().info(f"MapEvaluatingAgentBase.evaluate_trajectories: Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")

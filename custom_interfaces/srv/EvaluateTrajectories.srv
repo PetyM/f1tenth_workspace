@@ -1,5 +1,0 @@
-# Request
-custom_interfaces/Trajectory[] trajectories
----
-# Response
-TrajectoryEvaluation[] values

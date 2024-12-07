@@ -1,3 +1,0 @@
-float64 progress
-float64 trajectory_cost
-bool collision

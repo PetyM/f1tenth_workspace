@@ -9,11 +9,11 @@ from model import vehicle_dynamics, integrate_state
 from state import State
 
 from geometry_msgs.msg import Pose2D
-from custom_interfaces.msg import Trajectory
 
 import conversions
 
 from agent.mapevaluatingagentbase import MapEvaluatingAgentBase
+from agent.trajectory import Trajectory, TrajectoryEvaluation
 
 from geometry_msgs.msg import Pose2D
 from custom_interfaces.msg import Trajectory
@@ -135,7 +135,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
         i = 0
         for sample, trajectory, evaluation in zip(control_samples, trajectories, trajectories_evaluation):
             if not evaluation.collision:
-                trajectories_evaluated.append([i, evaluation.progress, evaluation.trajectory_cost])
+                trajectories_evaluated.append([i, evaluation.progress, evaluation.cost])
                 control_samples_filtered.append(sample)
                 trajectories_filtered.append(trajectory)
                 i += 1
