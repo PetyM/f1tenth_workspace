@@ -63,18 +63,10 @@ def generate_launch_description():
         package='agent',
         executable='samplingagent',
         name='ego_agent',
-        parameters=[{'opponent_present': opponent}],
+        parameters=[{'opponent_present': opponent},
+                    {'map_name': map},
+                    {'map_folder_path': f'{maps_folder}/{map}'}],
         arguments=["--ros-args", "--log-level", "warn"]
-    )
-
-    map_evaluator = Node(
-        package='agent',
-        executable='mapevaluator',
-        name='mapevaluator',
-        parameters=[{'map_name': map},
-                    {'map_folder_path': f'{maps_folder}/{map}'},
-                    {'opponent_present': opponent}],
-        arguments=["--ros-args", "--log-level", 'warn']
     )
 
     ld.add_action(rviz_node)
@@ -83,7 +75,6 @@ def generate_launch_description():
     ld.add_action(map_server_node)
     ld.add_action(ego_robot_publisher)
     ld.add_action(ego_agent_node)
-    ld.add_action(map_evaluator)
 
     if opponent:
         opp_robot_publisher = Node(

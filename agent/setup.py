@@ -11,8 +11,7 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', [f'resource/{package_name}']),
         (f'share/{package_name}', ['package.xml']),
-        (os.path.join('lib', package_name), [f'{package_name}/lineevaluator.py',
-                                             f'{package_name}/model.py',
+        (os.path.join('lib', package_name), [f'{package_name}/model.py',
                                              f'{package_name}/samplingagent.py',
                                              f'{package_name}/purepursuitagent.py',
                                              f'{package_name}/state.py',

@@ -1,5 +1,3 @@
-import PIL.Image
-import PIL.ImageShow
 import scipy.spatial
 import rclpy
 import rclpy.node
@@ -9,11 +7,6 @@ import rclpy.subscription
 import rclpy.time
 import rclpy.timer
 import rclpy.qos
-
-from tf2_ros import TransformStamped
-from tf2_ros.buffer import Buffer
-from tf2_ros.transform_listener import TransformListener
-from geometry_msgs.msg import Transform
 
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from geometry_msgs.msg import Vector3
@@ -30,40 +23,24 @@ import pathlib
 import numpy as np
 import scipy.ndimage
 import skimage.segmentation
-from matplotlib import pyplot as plt
 import imageio.v3 as iio
 import yaml
+from agent.agent import Agent
 
-class MapEvaluator(rclpy.node.Node):
+class MapEvaluatingAgent(Agent):
     def __init__(self):
-        super().__init__('map_evaluator')
+        super().__init__()
 
-        self.declare_parameter('ego_namespace', 'ego_racecar')
-        self.declare_parameter('opponent_namespace', 'opp_racecar')
-        self.declare_parameter('target_frame', 'base_link')
-        self.declare_parameter('reference_frame', 'map')
         self.declare_parameter('costmap_topic', '/costmap')
-        self.declare_parameter('opponent_present', False)
-        self.declare_parameter('map_name', '')
-        self.declare_parameter('map_folder_path', '')
-
-        self.opponent_present: bool = self.get_parameter('opponent_present').value
-
-        ego_namespace = self.get_parameter('ego_namespace').value
-        target_frame = self.get_parameter('target_frame').value
         costmap_topic = self.get_parameter('costmap_topic').value
 
-        self.ego_frame: str = f'{ego_namespace}/{target_frame}'
-        self.reference_frame: str = self.get_parameter('reference_frame').value
+        self.declare_parameter('map_name', '')
+        map_name = self.get_parameter('map_name').value
 
-        if self.opponent_present:
-            opponent_namespace = self.get_parameter('opponent_namespace').value
-            self.opponent_frame: str = f'{opponent_namespace}/{target_frame}'
+        self.declare_parameter('map_folder_path', '')
+        map_folder_path = self.get_parameter('map_folder_path').value
 
-        self.tf_buffer: Buffer = Buffer(rclpy.time.Duration(seconds=1), self)
-        self.tf_listener: TransformListener = TransformListener(self.tf_buffer, self)
-
-        self.timer: rclpy.timer.Timer = self.create_timer(0.01, self.update)
+        self.timer_costmap_update: rclpy.timer.Timer = self.create_timer(0.01, self.update_costmap)
 
         qos_profile = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
                                            durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
@@ -80,9 +57,6 @@ class MapEvaluator(rclpy.node.Node):
         self.evaluation_area_size: int = 199
         self.mask_offset: int = int((self.evaluation_area_size - 1) // 2)
 
-        map_name = self.get_parameter('map_name').value
-        map_folder_path = self.get_parameter('map_folder_path').value
-
         centerline = Raceline.from_centerline_file(pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv"))
         self.centerline = np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
 
@@ -93,9 +67,6 @@ class MapEvaluator(rclpy.node.Node):
             opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
             opponent_mask = scipy.ndimage.gaussian_filter(opponent_mask, sigma=20)
             self.opponent_mask: np.ndarray = 100 * (opponent_mask / opponent_mask.max())
-            
-
-        self.evaluate_service: rclpy.service.Service = self.create_service(EvaluateTrajectories, 'evaluate_trajectories', self.evaluate_trajectories)
 
 
     def prepare_costmap(self, map_folder_path: str, map_name: str):
@@ -152,24 +123,7 @@ class MapEvaluator(rclpy.node.Node):
 
         self.map_info.width = self.map.shape[0]
         self.map_info.height = self.map.shape[1]
-            
-
-    def get_ego_position(self):
-        try:
-            t = self.tf_buffer.lookup_transform(self.reference_frame, self.ego_frame, rclpy.time.Time())
-            return t.transform.translation
-        except Exception as ex:
-            self.get_logger().info(f'Could not transform {self.ego_frame} to {self.reference_frame}: {ex}')
-            return None
-
-
-    def get_opponent_position(self):
-        try:
-            t = self.tf_buffer.lookup_transform(self.reference_frame, self.opponent_frame, rclpy.time.Time())
-            return t.transform.translation
-        except Exception as ex:
-            self.get_logger().info(f'Could not transform {self.opponent_frame} to {self.reference_frame}: {ex}')
-            return None
+        self.costmap = self.map
 
 
     def map_to_grid_coordinates(self, coordinate: Vector3|Pose2D) -> np.ndarray:
@@ -184,22 +138,12 @@ class MapEvaluator(rclpy.node.Node):
         return np.array([x, y])
 
 
-    def update(self):
+    def update_costmap(self):
         if self.map is None:
             return  
         start = self.get_clock().now()
-        ego_position = self.get_ego_position()
-        if not ego_position:
-            return
-        
-        # ego_grid_position = self.map_to_grid_coordinates(ego_position)
 
-        if self.opponent_present:
-            opponent_position = self.get_opponent_position()
-            if not opponent_position:
-                return
-            
-            opponent_grid_position = self.map_to_grid_coordinates(opponent_position)
+        opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=self.opp_state[0], y=self.opp_state[1], theta=self.opp_state[4]))
 
         costmap = np.zeros_like(self.map)
 
@@ -224,18 +168,18 @@ class MapEvaluator(rclpy.node.Node):
         self.get_logger().info(f"(update) took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
-    def evaluate_trajectories(self, request: EvaluateTrajectories.Request, response: EvaluateTrajectories.Response) -> EvaluateTrajectories.Response:
+    def evaluate_trajectories(self, trajectories: list[Trajectory]) -> list[TrajectoryEvaluation]:
         start = self.get_clock().now()
-        self.get_logger().info(f'Evaluating {len(request.trajectories)} trajectories')
+        self.get_logger().info(f'Evaluating {len(trajectories)} trajectories')
         costmap: np.ndarray = self.costmap.copy()
 
         values: list[TrajectoryEvaluation] = []
 
-        _, _, _, initial_centerline_index = nearest_point_on_trajectory(np.array([request.trajectories[0].poses[0].x, request.trajectories[0].poses[0].y]), self.centerline)
+        _, _, _, initial_centerline_index = nearest_point_on_trajectory(np.array([trajectories[0].poses[0].x, trajectories[0].poses[0].y]), self.centerline)
 
 
         trajectory: Trajectory
-        for trajectory in request.trajectories:
+        for trajectory in trajectories:
             self.get_logger().info(f'Evaluating trajectory of {len(trajectory.poses)} poses')
 
             evaluation = TrajectoryEvaluation()
@@ -261,12 +205,5 @@ class MapEvaluator(rclpy.node.Node):
             self.get_logger().info(f'{evaluation.progress=}, {evaluation.trajectory_cost=}, {evaluation.collision=}')
             values.append(evaluation)
             
-        response.values = values
         self.get_logger().info(f"Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
-        return response
-
-
-def main():
-    rclpy.init()
-    evaluator = MapEvaluator()
-    rclpy.spin(evaluator)
+        return values

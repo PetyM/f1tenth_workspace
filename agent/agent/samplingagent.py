@@ -1,10 +1,7 @@
 import rclpy
 import rclpy.client
 import rclpy.publisher
-import rclpy.wait_for_message
 
-from rclpy.node import Node
-from nav_msgs.msg import OccupancyGrid
 
 import numpy as np
 from model import vehicle_dynamics, integrate_state
@@ -16,29 +13,25 @@ from custom_interfaces.msg import Trajectory
 
 import conversions
 
-from agent.agent import Agent
+from agent.mapevaluatingagent import MapEvaluatingAgent
 
 from geometry_msgs.msg import Pose2D
-from custom_interfaces.srv import EvaluateTrajectories
-from custom_interfaces.msg import Trajectory, TrajectoryEvaluation
+from custom_interfaces.msg import Trajectory
 import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 
-class SamplingAgent(Agent):
+class SamplingAgent(MapEvaluatingAgent):
     def __init__(self) -> None:
         super().__init__()
     
         self.declare_parameter('predictions_topic', 'predictions')
-        self.declare_parameter('followed_trajectory_topic', 'followed_trajectory')
         self.predictions_topic: str = self.get_parameter('predictions_topic').value
+
+        self.declare_parameter('followed_trajectory_topic', 'followed_trajectory')
         self.followed_trajectory_topic: str = self.get_parameter('followed_trajectory_topic').value
 
         self.predictions_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.predictions_topic}', 1)
         self.followed_trajectory_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.followed_trajectory_topic}', 1)
-
-        self.evaluation_client: rclpy.client.Client = self.create_client(EvaluateTrajectories, 'evaluate_trajectories')
-        self.evaluation_client.wait_for_service()
-        
         
         self.parameters: dict = {"mu": 1.0489, 
                                  "C_Sf": 4.718,
@@ -70,8 +63,8 @@ class SamplingAgent(Agent):
         self.minimum_steering_angle: float = 0.7 * self.parameters["s_min"]
         self.maximum_steering_angle: float = 0.7 * self.parameters["s_max"]
         
-        self.maximum_velocity_difference: float = (self.maximum_velocity - self.minimum_velocity) / 10.0
         self.maximum_steering_difference: float = (self.maximum_steering_angle - self.minimum_steering_angle) / 10.0
+        self.maximum_velocity_difference: float = (self.maximum_velocity - self.minimum_velocity) / 10.0
 
 
     def _convert_state(self, state: list[float]) -> State:
@@ -119,13 +112,7 @@ class SamplingAgent(Agent):
             trajectories.append(Trajectory(poses=poses))
         
         return trajectories
-
-
-    def evaluate_trajectories(self, trajectories: list[Trajectory]) -> list[TrajectoryEvaluation]:
-        future = self.evaluation_client.call_async(EvaluateTrajectories.Request(trajectories = trajectories))
-        self.executor.spin_until_future_complete(future)
-        return future.result().values
-    
+       
 
     def plan(self, state: list[float]) -> list[float]:
         state: State = self._convert_state(state)
@@ -138,7 +125,7 @@ class SamplingAgent(Agent):
 
         self.publish_predictions(trajectories)
 
-        trajectories_evaluation = self.evaluate_trajectories(trajectories)
+        trajectories_evaluation = super().evaluate_trajectories(trajectories)
         
         assert len(trajectories) == len(trajectories_evaluation), 'Evaluations count doesnt match trajectories count'
 
@@ -251,12 +238,5 @@ class SamplingAgent(Agent):
 
 def main():
     rclpy.init()    
-    
-    qos_profile = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
-                                durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
-                                history=rclpy.qos.HistoryPolicy.KEEP_LAST,
-                                depth=5)
-    rclpy.wait_for_message.wait_for_message(OccupancyGrid, Node('waiter'), '/costmap', qos_profile=qos_profile, time_to_wait=-1)
-
     agent = SamplingAgent()
     rclpy.spin(agent)

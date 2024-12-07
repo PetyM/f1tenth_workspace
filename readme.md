@@ -1,5 +1,14 @@
 # F1Tenth Workspace
 
+## Struktura tříd
+
+```mermaid
+classDiagram
+    Agent --|> PurePursuitAgent
+    Agent --|> MapEvaluatingAgent
+    MapEvaluatingAgent --|> SamplingAgent
+
+```
 
 ## Using via Dev Containers
 - start by installing WSL: `wsl --install`
