@@ -4,9 +4,9 @@
 
 ```mermaid
 classDiagram
-    AgentBase --|> PurePursuitAgent
-    AgentBase --|> MapEvaluatingAgentBase
-    MapEvaluatingAgentBase --|> SamplingAgent
+    AgentBase <-- PurePursuitAgent
+    AgentBase <-- MapEvaluatingAgentBase
+    MapEvaluatingAgentBase <-- SamplingAgent
     
     class AgentBase {
         string agent_namesapce: "ego_racecar"
