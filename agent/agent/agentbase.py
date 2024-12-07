@@ -14,7 +14,7 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Float64MultiArray
 
 
-class Agent(rclpy.node.Node):
+class AgentBase(rclpy.node.Node):
     def __init__(self):
         super().__init__('agent')
 

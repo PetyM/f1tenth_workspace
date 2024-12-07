@@ -25,9 +25,9 @@ import scipy.ndimage
 import skimage.segmentation
 import imageio.v3 as iio
 import yaml
-from agent.agent import Agent
+from agent.agentbase import AgentBase
 
-class MapEvaluatingAgent(Agent):
+class MapEvaluatingAgentBase(AgentBase):
     def __init__(self):
         super().__init__()
 

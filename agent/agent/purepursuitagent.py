@@ -6,7 +6,7 @@ from typing import Tuple
 import gymnasium as gym
 import numpy as np
 from numba import njit
-from agent.agent import Agent
+from agent.agent import AgentBase
 
 import pathlib
 from f1tenth_gym.envs.track import Raceline
@@ -172,7 +172,7 @@ def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, whe
     return speed, steering_angle
 
 
-class PurePursuitAgent(Agent):
+class PurePursuitAgent(AgentBase):
     def __init__(self):
         super().__init__()
 

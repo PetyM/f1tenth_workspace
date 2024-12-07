@@ -13,14 +13,14 @@ from custom_interfaces.msg import Trajectory
 
 import conversions
 
-from agent.mapevaluatingagent import MapEvaluatingAgent
+from agent.mapevaluatingagentbase import MapEvaluatingAgentBase
 
 from geometry_msgs.msg import Pose2D
 from custom_interfaces.msg import Trajectory
 import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 
-class SamplingAgent(MapEvaluatingAgent):
+class SamplingAgent(MapEvaluatingAgentBase):
     def __init__(self) -> None:
         super().__init__()
     
