@@ -87,12 +87,12 @@ class MapEvaluatingAgentBase(AgentBase):
 
         costmap_path = pathlib.Path(f'{map_name}_costmap.png')
         if costmap_path.exists():
-            self.get_logger().error(f'Costmap found. Using previously generated costmap ({costmap_path})')
+            self.get_logger().warn(f'MapEvaluatingAgentBase.prepare_costmap: Costmap found. Using previously generated costmap ({costmap_path})')
 
             self.map = iio.imread(costmap_path)
             
         else:
-            self.get_logger().error('Costmap NOT found. Calculating costmap...')
+            self.get_logger().warn('MapEvaluatingAgentBase.prepare_costmap: Costmap NOT found. Calculating costmap...')
 
             # raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
             # raceline = Raceline.from_raceline_file(raceline_file)
@@ -165,12 +165,12 @@ class MapEvaluatingAgentBase(AgentBase):
         costmap.info = self.map_info
 
         self.costmap_publisher.publish(costmap)
-        self.get_logger().info(f"(update) took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.get_logger().info(f"MapEvaluatingAgentBase.update_costmap: Took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
     def evaluate_trajectories(self, trajectories: list[Trajectory]) -> list[TrajectoryEvaluation]:
         start = self.get_clock().now()
-        self.get_logger().info(f'Evaluating {len(trajectories)} trajectories')
+        self.get_logger().info(f'MapEvaluatingAgentBase.evaluate_trajectories: Evaluating {len(trajectories)} trajectories')
         costmap: np.ndarray = self.costmap.copy()
 
         values: list[TrajectoryEvaluation] = []
@@ -180,8 +180,6 @@ class MapEvaluatingAgentBase(AgentBase):
 
         trajectory: Trajectory
         for trajectory in trajectories:
-            self.get_logger().info(f'Evaluating trajectory of {len(trajectory.poses)} poses')
-
             evaluation = TrajectoryEvaluation()
             
             pose: Pose2D
@@ -205,5 +203,5 @@ class MapEvaluatingAgentBase(AgentBase):
             self.get_logger().info(f'{evaluation.progress=}, {evaluation.trajectory_cost=}, {evaluation.collision=}')
             values.append(evaluation)
             
-        self.get_logger().info(f"Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.get_logger().info(f"MapEvaluatingAgentBase.evaluate_trajectories: Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
         return values
