@@ -4,9 +4,9 @@
 
 ```mermaid
 classDiagram
-    Agent --|> PurePursuitAgent
-    Agent --|> MapEvaluatingAgent
-    MapEvaluatingAgent --|> SamplingAgent
+    AgentBase --|> PurePursuitAgent
+    AgentBase --|> MapEvaluatingAgentBase
+    MapEvaluatingAgentBase --|> SamplingAgent
 
 ```
 
