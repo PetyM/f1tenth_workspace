@@ -61,15 +61,14 @@ class AgentBase(rclpy.node.Node):
 
 
     def update(self):
-        if self.ego_state and (self.opp_state or not self.opponent_present):
-            start = self.get_clock().now()
+        start = self.get_clock().now()
 
-            action = self.plan(self.ego_state)
+        action = self.plan(self.ego_state)
 
-            msg = AckermannDriveStamped()
-            msg.header.stamp = self.get_clock().now().to_msg()
-            msg.drive.speed = float(action[1])
-            msg.drive.steering_angle = float(action[0])
-            self.drive_publiser.publish(msg)
+        msg = AckermannDriveStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.drive.speed = float(action[1])
+        msg.drive.steering_angle = float(action[0])
+        self.drive_publiser.publish(msg)
 
-            self.get_logger().info(f"AgentBase.update: State: x={self.ego_state[0]:.2f}, y={self.ego_state[1]:.2f}, v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.get_logger().info(f"AgentBase.update: State: x={self.ego_state[0]:.2f}, y={self.ego_state[1]:.2f}, v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
