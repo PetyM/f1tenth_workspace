@@ -31,7 +31,7 @@ class MapEvaluatingAgentBase(AgentBase):
     def __init__(self):
         super().__init__()
 
-        self.declare_parameter('costmap_topic', '/costmap')
+        self.declare_parameter('costmap_topic', 'costmap')
         costmap_topic = self.get_parameter('costmap_topic').value
 
         self.declare_parameter('map_name', '')
@@ -50,7 +50,7 @@ class MapEvaluatingAgentBase(AgentBase):
         self.map: np.ndarray = None
         self.map_info: MapMetaData = MapMetaData()
 
-        self.costmap_publisher: rclpy.publisher.Publisher = self.create_publisher(OccupancyGrid, costmap_topic, qos_profile)
+        self.costmap_publisher: rclpy.publisher.Publisher = self.create_publisher(OccupancyGrid, f'{self.agent_namespace}/{costmap_topic}', qos_profile)
         self.costmap: np.ndarray = None
         self.car_size: float = 0.4
 

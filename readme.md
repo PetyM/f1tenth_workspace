@@ -9,30 +9,41 @@ classDiagram
     MapEvaluatingAgentBase --|> SamplingAgent
     
     class AgentBase {
-        Subscriber[Float64MultiArray]: "ego_racecar/state"
-        Subscriber[Float64MultiArray]: "opp_racecar/state"
-        
-        Publisher[AckermannDriveStamped]: "ego_racecar/drive"
+        string agent_namesapce: "ego_racecar"
+        string opponent_namesapce: "opp_racecar"
+        string state_topic: "state"
+        string drive_topic: "drive"
+        float velocity_gain: 1.0
+        bool opponent_presend: False
 
-        Timer[30ms] -> update_control
+        Subscriber(Float64MultiArray, agent_namesapce/state_topic)
+        Subscriber(Float64MultiArray, opponent_namesapce/state_topic)
+        Publisher(AckermannDriveStamped, agent_namesapce/drive_topic)
+        Timer(30ms, update_control)
     }
 
     class MapEvaluatingAgentBase {
-        Publisher[OccupancyGrid]: "/costmap"
-        Timer[10ms] -> update_cotmap
+        string costmap_topic: "costmap"
+        string map_name
+        string map_folder_path
 
-        evaluateTrajectories()
+        Publisher(OccupancyGrid, agent_namesapce/costmap_topic)
+        Timer(10ms, update_cotmap)
+
     }
 
     class SamplingAgent {
-        Publisher[PointCloud2]: "ego_racecar/predictions"
-        Publisher[PointCloud2]: "ego_racecar/followed_trajectory"
+        string predictions_topic: "predictions"
+        string followed_trajectory_topic: "followed_trajectory"
 
-        plan()
+        Publisher(PointCloud2, agent_namesapce/predictions)
+        Publisher(PointCloud2, agent_namesapce/followed_trajectory)
+
     }
 
     class PurePursuitAgent {
-        plan()
+        string map_name
+        string map_folder_path
     }
 ```
 
@@ -58,12 +69,6 @@ classDiagram
 - Zkusit více modelů (Ackermann kinematic model)
 
 ### Evaluace
-- Když se ohodnocuje jenom koncový stav, nezachytí se kolize na trajektorii
-- Costmapa:
-    - Lepší evaluace odměny za ujetou vzdálenost od ega
-    - zastavit simulaci, než se načte costmapa
-- Pipeline - nejdrive vyhodit kolize, potom resit zbytek
-- Rozdelit opponent/race score
 - Vyladit jezdeni bez oponenta
 - pridat orientaci auta do vyhodnoceni
 - napocitat vektory s orientaci
