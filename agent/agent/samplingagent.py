@@ -105,7 +105,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
             poses: list[Pose2D] = []
             poses.append(conversions.array_to_pose(s[:3]))
 
-            for _ in range(self.trajectory_points):
+            for _ in range(self.trajectory_points - 1):
                 s = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
                 poses.append(conversions.array_to_pose(s[:3]))
 
