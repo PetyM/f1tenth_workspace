@@ -7,7 +7,33 @@ classDiagram
     AgentBase --|> PurePursuitAgent
     AgentBase --|> MapEvaluatingAgentBase
     MapEvaluatingAgentBase --|> SamplingAgent
+    
+    class AgentBase {
+        Subscriber[Float64MultiArray]: "ego_racecar/state"
+        Subscriber[Float64MultiArray]: "opp_racecar/state"
+        
+        Publisher[AckermannDriveStamped]: "ego_racecar/drive"
 
+        Timer[30ms] -> update_control
+    }
+
+    class MapEvaluatingAgentBase {
+        Publisher[OccupancyGrid]: "/costmap"
+        Timer[10ms] -> update_cotmap
+
+        evaluateTrajectories()
+    }
+
+    class SamplingAgent {
+        Publisher[PointCloud2]: "ego_racecar/predictions"
+        Publisher[PointCloud2]: "ego_racecar/followed_trajectory"
+
+        plan()
+    }
+
+    class PurePursuitAgent {
+        plan()
+    }
 ```
 
 ## Using via Dev Containers
@@ -29,7 +55,7 @@ classDiagram
 - zlepsit limity pro generovani samplu
 
 ### Simulace controls
-- Zkusit více modelů
+- Zkusit více modelů (Ackermann kinematic model)
 
 ### Evaluace
 - Když se ohodnocuje jenom koncový stav, nezachytí se kolize na trajektorii

@@ -42,7 +42,7 @@ class AgentBase(rclpy.node.Node):
         if self.opponent_present:
             self.opp_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{self.opponent_namespace}/{self.state_topic}', self.opp_state_cb, 10)
         
-        self.timer_update_control: rclpy.timer.Timer = self.create_timer(0.03, self.update)
+        self.timer_update_control: rclpy.timer.Timer = self.create_timer(0.03, self.update_control)
 
         self.ego_state: list[float] = [0,0,0,0,0,0,0]
         self.opp_state: list[float] = [0,0,0,0,0,0,0]
@@ -60,7 +60,7 @@ class AgentBase(rclpy.node.Node):
         self.opp_state = msg.data
 
 
-    def update(self):
+    def update_control(self):
         start = self.get_clock().now()
 
         action = self.plan(self.ego_state)
