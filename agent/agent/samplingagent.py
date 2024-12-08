@@ -87,9 +87,18 @@ class SamplingAgent(MapEvaluatingAgentBase):
         
         steering_angles = np.linspace(minimum_steering, maximum_steering, self.steering_saples_count)
         
-        velocities = np.linspace(max(state.velocity - self.maximum_velocity_difference, self.minimum_velocity), 
-                                 min(state.velocity + self.maximum_velocity_difference, self.maximum_velocity),
-                                 self.velocity_samples_count)
+        minimum_velocity = state.velocity - self.maximum_velocity_difference
+        maximum_velocity = state.velocity + self.maximum_velocity_difference
+
+        if maximum_velocity > self.maximum_velocity:
+            maximum_velocity = self.maximum_velocity
+            minimum_velocity = max(self.minimum_velocity, maximum_velocity - 2 * self.maximum_velocity_difference)
+        elif minimum_velocity < self.minimum_velocity:
+            minimum_velocity = self.minimum_velocity
+            maximum_velocity = min(self.maximum_velocity, minimum_velocity + 2 * self.maximum_velocity_difference)
+        
+
+        velocities = np.linspace(minimum_velocity, maximum_velocity, self.velocity_samples_count)
 
         samples = np.stack(np.meshgrid(steering_angles, velocities), axis=2)
         samples = np.reshape(samples, (-1, 2))
