@@ -28,7 +28,8 @@ setup(
         'console_scripts': [
             'purepursuitagent = agent.purepursuitagent:main',
             'samplingagent = agent.samplingagent:main',
-            'mapevaluator = agent.mapevaluator:main'
+            'mapevaluator = agent.mapevaluator:main',
+            'mppiagent = agent.mppiagent:main'
         ],
     },
 )
