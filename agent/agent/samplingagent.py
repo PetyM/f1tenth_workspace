@@ -16,7 +16,6 @@ from agent.mapevaluatingagentbase import MapEvaluatingAgentBase
 from agent.trajectory import Trajectory, TrajectoryEvaluation
 
 from geometry_msgs.msg import Pose2D
-from custom_interfaces.msg import Trajectory
 import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 

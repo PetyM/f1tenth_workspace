@@ -1,7 +1,7 @@
 import numpy as np
 
 from geometry_msgs.msg import Pose2D
-from custom_interfaces.msg import Trajectory
+from agent.trajectory import Trajectory
 
 def pose_to_array(pose: Pose2D) -> np.ndarray:
     return np.array([pose.x, pose.x, pose.theta])
