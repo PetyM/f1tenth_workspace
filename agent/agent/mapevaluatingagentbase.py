@@ -40,6 +40,9 @@ class MapEvaluatingAgentBase(AgentBase):
         self.declare_parameter('map_folder_path', '')
         map_folder_path = self.get_parameter('map_folder_path').value
 
+        self.declare_parameter('map_log', False)
+        self.map_log: bool = self.get_parameter('map_log').value
+
         self.timer_costmap_update: rclpy.timer.Timer = self.create_timer(0.01, self.update_costmap)
 
         qos_profile = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
@@ -165,12 +168,12 @@ class MapEvaluatingAgentBase(AgentBase):
         costmap.info = self.map_info
 
         self.costmap_publisher.publish(costmap)
-        self.get_logger().info(f"MapEvaluatingAgentBase.update_costmap: Took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.map_log and self.get_logger().info(f"MapEvaluatingAgentBase.update_costmap: Took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
     def evaluate_trajectories(self, trajectories: list[Trajectory]) -> list[TrajectoryEvaluation]:
         start = self.get_clock().now()
-        self.get_logger().info(f'MapEvaluatingAgentBase.evaluate_trajectories: Evaluating {len(trajectories)} trajectories')
+        self.map_log and self.get_logger().info(f'MapEvaluatingAgentBase.evaluate_trajectories: Evaluating {len(trajectories)} trajectories')
         costmap: np.ndarray = self.costmap.copy()
 
         values: list[TrajectoryEvaluation] = []
@@ -200,8 +203,8 @@ class MapEvaluatingAgentBase(AgentBase):
             else:
                 evaluation.progress = float(centerline_index - initial_centerline_index)
 
-            self.get_logger().info(f'{evaluation.progress=}, {evaluation.cost=}, {evaluation.collision=}')
+            self.map_log and self.get_logger().info(f'{evaluation.progress=}, {evaluation.cost=}, {evaluation.collision=}')
             values.append(evaluation)
             
-        self.get_logger().info(f"MapEvaluatingAgentBase.evaluate_trajectories: Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.map_log and self.get_logger().info(f"MapEvaluatingAgentBase.evaluate_trajectories: Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
         return values
