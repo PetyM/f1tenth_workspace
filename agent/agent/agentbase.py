@@ -71,4 +71,4 @@ class AgentBase(rclpy.node.Node):
         msg.drive.steering_angle = float(action[0])
         self.drive_publiser.publish(msg)
 
-        self.get_logger().info(f"AgentBase.update: State: x={self.ego_state[0]:.2f}, y={self.ego_state[1]:.2f}, v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.get_logger().info(f"AgentBase.update: State: v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
