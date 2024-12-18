@@ -51,10 +51,10 @@ class SamplingAgent(MapEvaluatingAgentBase):
                                  "width": 0.31,
                                  "length": 0.58}
 
-        self.steering_saples_count: int = 10
+        self.steering_saples_count: int = 5
         self.velocity_samples_count: int = 5
         self.prediction_horizont: float = 1.0
-        self.trajectory_points: int = 10
+        self.trajectory_points: int = 20
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
         self.minimum_velocity: float = 0
@@ -129,7 +129,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         if not self.launched:
             self.launched = state.velocity > 0
-            return [0, 0.25 * self.maximum_velocity]
+            return [0, self.maximum_velocity]
    
         control_samples = self.generate_samples(state)
 
@@ -166,9 +166,9 @@ class SamplingAgent(MapEvaluatingAgentBase):
             progress_scores[trajectories_by_progress[i][0]] = i
             cost_scores[trajectories_by_cost[i][0]] = i
     
-        relative_velocity = state.velocity / self.maximum_velocity
-        cost_factor = 0.5 + 0.5 * (relative_velocity - 0.5)
-        combined_scores = (1.0 - cost_factor) * progress_scores + cost_factor * cost_scores
+        # relative_velocity = state.velocity / self.maximum_velocity
+        # cost_factor = 0.5 + 0.5 * (relative_velocity - 0.5)
+        combined_scores = progress_scores + cost_scores
 
         best = np.argmin(combined_scores)
 
