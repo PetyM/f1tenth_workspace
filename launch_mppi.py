@@ -62,7 +62,7 @@ def generate_launch_description():
     mppi_controller_node = Node(
         package='nav2_controller',
         executable='controller_server',
-        name='ego_agent',
+        name='ego_agent_controller',
         parameters=[{'planner_plugin': "nav2_mppi_controller/MPPIController"},
                     {'max_vel_x': 0.5},
                     {'max_vel_y': 0.0},
@@ -76,10 +76,9 @@ def generate_launch_description():
     ego_agent_node = Node(
         package='agent',
         executable='mppiagent',
-        name='opp_agent',
+        name='ego_agent',
         parameters=[{'map_name': map},
-                    {'map_folder_path': f'{maps_folder}/{map}'},
-                    {'agent_namespace': 'opp_racecar'}],
+                    {'map_folder_path': f'{maps_folder}/{map}'}],
         arguments=["--ros-args", "--log-level", "warn"]
     )
 
