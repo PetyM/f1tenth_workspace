@@ -60,6 +60,8 @@ classDiagram
 - Při rozjezdu na začátku omezit zatáčení (rozjíždět se jenom rovně)
 - Není synchronizovaná mapa v simulátoru s launch.py
 - zpomalit cas (vlastni publisher na cas), nebo nahrat rosbag a prehravat zpomalene
+- Posunout base_link dopředu nebo doprostřed
+- přidat odometrii pro MPPI
 
 ### Samplování
 - Používání klotoid
