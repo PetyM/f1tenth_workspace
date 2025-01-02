@@ -82,7 +82,7 @@ def generate_launch_description():
                     'transform_tolerance': 0.1,
                     'temperature': 0.3,
                     'gamma': 0.015,
-                    'motion_model': 'DiffDrive',
+                    'motion_model': 'Ackermann',
                     'visualize': False,
                     'TrajectoryVisualizer': {
                         'trajectory_step': 5,
@@ -156,7 +156,8 @@ def generate_launch_description():
                         'forward_preference': True
                     }
                 }
-            }]
+            }],
+            arguments=["--ros-args", "--log-level", "info"]
     )
 
     ego_agent_node = Node(

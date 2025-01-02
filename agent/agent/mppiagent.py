@@ -1,6 +1,7 @@
 import rclpy
 import rclpy.publisher
 import rclpy.subscription
+import rclpy.task
 import rclpy.timer
 import rclpy.action
 
@@ -39,8 +40,9 @@ class MPPIAgent(AgentBase):
         self.cmd_subscription: rclpy.subscription.Subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_callback, 1)
 
         self.action: rclpy.action.ActionClient = rclpy.action.ActionClient(self, FollowPath, '/follow_path')
+        self.future: rclpy.task.Future = None
 
-        self.timer_update_control: rclpy.timer.Timer = self.create_timer(0.3, self.update_control)
+        self.timer_update_control: rclpy.timer.Timer = self.create_timer(3.0, self.update_control)
 
 
     def cmd_callback(self, cmd: Twist):
@@ -49,9 +51,16 @@ class MPPIAgent(AgentBase):
         msg.drive.speed = cmd.linear.x
         msg.drive.steering_angle = cmd.angular.z
         self.drive_publiser.publish(msg)
+        self.get_logger().warn(f"MPPIAgent.cmd_callback: CMD: {cmd.linear.x}, {cmd.angular.z}")
 
 
     def update_control(self):
+        if self.future is not None:
+            if self.future.done():
+                self.get_logger().warn(f"future {self.future.result()}")
+                self.future = None
+            else:
+                return
         start = self.get_clock().now()
 
         waypoint, _, _ = first_point_on_trajectory_intersecting_circle(np.array(self.ego_state[:2], dtype=np.float64), self.waypoint_distance, self.centerline, wrap=True)
@@ -72,11 +81,14 @@ class MPPIAgent(AgentBase):
         self.waypoint_publisher.publish(message)
 
         msg = FollowPath.Goal()
+        msg.controller_id = 'FollowPath'
+        msg.path.header.frame_id = 'map'
+        msg.path.header.stamp = message.header.stamp
         msg.path.poses.append(message)
         self.action.wait_for_server()
-        self.action.send_goal_async(msg)
+        self.future = self.action.send_goal_async(msg)
 
-        self.get_logger().warn(f"AgentBase.update: State: took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
+        self.get_logger().warn(f"MPPIAgent.update: State: took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
 def main():
