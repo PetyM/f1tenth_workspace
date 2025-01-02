@@ -19,7 +19,7 @@ from f1tenth_gym.envs.track import Raceline
 
 
 from agent.agentbase import AgentBase
-from agent.state import first_point_on_trajectory_intersecting_circle
+from agent.state import first_point_on_trajectory_intersecting_circle, nearest_point_on_trajectory
 
 class MPPIAgent(AgentBase):
     def __init__(self):
@@ -34,7 +34,7 @@ class MPPIAgent(AgentBase):
         centerline = Raceline.from_centerline_file(pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv"))
         self.centerline = np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
 
-        self.waypoint_distance: float = 20.0
+        self.waypoint_distance: float = 2.0
 
         self.waypoint_publisher: rclpy.publisher.Publisher = self.create_publisher(PoseStamped, '/goal_pose', 1)
         self.cmd_subscription: rclpy.subscription.Subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_callback, 1)
@@ -42,16 +42,37 @@ class MPPIAgent(AgentBase):
         self.action: rclpy.action.ActionClient = rclpy.action.ActionClient(self, FollowPath, '/follow_path')
         self.future: rclpy.task.Future = None
 
-        self.timer_update_control: rclpy.timer.Timer = self.create_timer(3.0, self.update_control)
+        self.timer_update_control: rclpy.timer.Timer = self.create_timer(1.0, self.update_control)
+
+        params = {"mu": 1.0489, 
+            "C_Sf": 4.718,
+            "C_Sr": 5.4562,
+            "lf": 0.15875,
+            "lr": 0.17145,
+            "h": 0.074,
+            "m": 3.74,
+            "I": 0.04712,
+            "s_min": -0.4189,
+            "s_max": 0.4189,
+            "sv_min": -3.2,
+            "sv_max": 3.2,
+            "v_switch": 7.319,
+            "a_max": 9.51,
+            "v_min": -5.0,
+            "v_max": 20.0,
+            "width": 0.31,
+            "length": 0.58}
+
+        self.wheelbase = params["lr"] + params["lf"]
 
 
     def cmd_callback(self, cmd: Twist):
         msg = AckermannDriveStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.drive.speed = cmd.linear.x
-        msg.drive.steering_angle = cmd.angular.z
+        msg.drive.steering_angle =  np.arctan2(cmd.angular.z * self.wheelbase, cmd.linear.x)
         self.drive_publiser.publish(msg)
-        self.get_logger().warn(f"MPPIAgent.cmd_callback: CMD: {cmd.linear.x}, {cmd.angular.z}")
+        self.get_logger().info(f"MPPIAgent.cmd_callback: CMD: {cmd.linear.x}, {cmd.angular.z}")
 
 
     def update_control(self):
@@ -63,7 +84,8 @@ class MPPIAgent(AgentBase):
                 return
         start = self.get_clock().now()
 
-        waypoint, _, _ = first_point_on_trajectory_intersecting_circle(np.array(self.ego_state[:2], dtype=np.float64), self.waypoint_distance, self.centerline, wrap=True)
+        _, _, _, trajectory_index = nearest_point_on_trajectory(np.array(self.ego_state[:2], dtype=np.float64), self.centerline)
+        waypoint, _, _ = first_point_on_trajectory_intersecting_circle(np.array(self.ego_state[:2], dtype=np.float64), self.waypoint_distance, self.centerline, trajectory_index, True)
 
         message = PoseStamped()
         message.header.stamp = self.get_clock().now().to_msg()
