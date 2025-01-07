@@ -34,7 +34,7 @@ class MPPIAgent(AgentBase):
         centerline = Raceline.from_centerline_file(pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv"))
         self.centerline = np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
 
-        self.waypoint_distance: float = 2.0
+        self.waypoint_distance: float = 10.0
 
         self.waypoint_publisher: rclpy.publisher.Publisher = self.create_publisher(PoseStamped, '/goal_pose', 1)
         self.cmd_subscription: rclpy.subscription.Subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_callback, 1)
@@ -85,7 +85,11 @@ class MPPIAgent(AgentBase):
         start = self.get_clock().now()
 
         _, _, _, trajectory_index = nearest_point_on_trajectory(np.array(self.ego_state[:2], dtype=np.float64), self.centerline)
-        waypoint, _, _ = first_point_on_trajectory_intersecting_circle(np.array(self.ego_state[:2], dtype=np.float64), self.waypoint_distance, self.centerline, trajectory_index, True)
+        waypoint, waypoint_index, _ = first_point_on_trajectory_intersecting_circle(np.array(self.ego_state[:2], dtype=np.float64), self.waypoint_distance, self.centerline, trajectory_index, True)
+        waypoint_n1 = self.centerline[waypoint_index + 1, :]
+        
+        waypoint_heading_vector = waypoint_n1 - waypoint
+        angle_radians = np.arctan2(waypoint_heading_vector[1], waypoint_heading_vector[0])
 
         message = PoseStamped()
         message.header.stamp = self.get_clock().now().to_msg()
@@ -94,7 +98,7 @@ class MPPIAgent(AgentBase):
         message.pose.position.y = float(waypoint[1])
         message.pose.position.z = float(0.0)
 
-        quat = euler.euler2quat(0.0, 0.0, 0.0, axes='sxyz')
+        quat = euler.euler2quat(0.0, 0.0, angle_radians, axes='sxyz')
         message.pose.orientation.x = float(quat[1])
         message.pose.orientation.y = float(quat[2])
         message.pose.orientation.z = float(quat[3])
