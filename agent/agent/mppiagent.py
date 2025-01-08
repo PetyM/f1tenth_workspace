@@ -14,6 +14,7 @@ from transforms3d import euler
 from geometry_msgs.msg import PoseStamped, Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 from nav2_msgs.action import FollowPath
+from nav2_msgs.msg import SpeedLimit
 
 from f1tenth_gym.envs.track import Raceline
 
@@ -65,6 +66,17 @@ class MPPIAgent(AgentBase):
 
         self.wheelbase = params["lr"] + params["lf"]
 
+        self.action.wait_for_server()
+
+        speed_limit_publisher = self.create_publisher(SpeedLimit, '/speed_limit', 1)
+        limit = SpeedLimit()
+        limit.header.stamp = self.get_clock().now().to_msg()
+        limit.header.frame_id = 'map'
+        limit.percentage = True
+        limit.speed_limit = 100.0
+        speed_limit_publisher.publish(limit)
+
+
 
     def cmd_callback(self, cmd: Twist):
         msg = AckermannDriveStamped()
@@ -111,7 +123,6 @@ class MPPIAgent(AgentBase):
         msg.path.header.frame_id = 'map'
         msg.path.header.stamp = message.header.stamp
         msg.path.poses.append(message)
-        self.action.wait_for_server()
         self.future = self.action.send_goal_async(msg)
 
         self.get_logger().warn(f"MPPIAgent.update: State: took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")

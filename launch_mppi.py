@@ -68,7 +68,7 @@ def generate_launch_description():
                 'FollowPath': {
                     'plugin': 'nav2_mppi_controller::MPPIController',
                     'time_steps': 56,
-                    'model_dt': 0.05,
+                    'model_dt': 0.1,
                     'batch_size': 2000,
                     'vx_std': 5.0,
                     'vy_std': 5.0,
@@ -76,9 +76,9 @@ def generate_launch_description():
                     'vx_max': 20.0,
                     'vx_min': -5.0,
                     'vy_max': 20.0,
-                    'wz_max': 1.9,
+                    'wz_max': 5.0,
                     'iteration_count': 1,
-                    'prune_distance': 1.7,
+                    'prune_distance': 20.0,
                     'transform_tolerance': 0.1,
                     'temperature': 0.3,
                     'gamma': 0.015,
@@ -89,7 +89,7 @@ def generate_launch_description():
                         'time_step': 3
                     },
                     'AckermannConstraints': {
-                        'min_turning_r': 0.2
+                        'min_turning_r': 0.01
                     },
                     'critics': [
                         "ConstraintCritic", "CostCritic", "GoalCritic", 
