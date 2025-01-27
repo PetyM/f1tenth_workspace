@@ -8,14 +8,21 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(ackermann_msgs REQUIRED)
 
 add_executable(agent src/agentbase.cpp)
+
 target_include_directories(agent PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-  
-ament_target_dependencies(agent rclcpp)
+
+target_compile_features(agent PRIVATE cxx_std_20)
+
+ament_target_dependencies(agent 
+  rclcpp
+  ackermann_msgs
+)
 
 install(
   TARGETS agent

@@ -10,8 +10,10 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
-  
-  <exec_depend>f1tenth_gym_ros</exec_depend>
+  <depend>ackermann_msgs</depend>
+
+  <exec_depend>f1tenth_gym_ros</exec_depend> 
+
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

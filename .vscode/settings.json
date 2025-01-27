@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "array": "cpp",
+        "chrono": "cpp",
+        "future": "cpp",
+        "limits": "cpp",
+        "memory": "cpp",
+        "mutex": "cpp",
+        "sstream": "cpp",
+        "functional": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "format": "cpp"
+    }
+}
