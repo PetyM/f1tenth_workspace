@@ -1,5 +1,7 @@
 #include "cppagent/agentbase.h"
 
+#include "cppagent/utils.h"
+
 #include <format>
 
 
@@ -23,28 +25,42 @@ AgentBase::AgentBase()
     m_drivePublisher = create_publisher<AckermannDriveStamped>(driveTopic, 1);
 
     const std::string stateTopic = std::format("{}/{}", m_agentNamespace, m_stateTopic);
-    const auto stateCallback = [this](Float64MultiArray::SharedPtr state)
+    const auto stateCallback = [this](Odometry::SharedPtr state)
     {
-        m_state.set(state->data);
+        EulerAngles e = quaternionToEuler(state->pose.pose.orientation);
+        m_state.set(State{
+            .positionX = state->pose.pose.position.x,
+            .positionY = state->pose.pose.position.y,
+            .theta = e.yaw,
+            .velocity = state->twist.twist.linear.x,
+            .steeringAngle = state->twist.twist.angular.z
+        });
     };
-    m_stateSubscription = create_subscription<Float64MultiArray>(stateTopic, 1, stateCallback);
+    m_stateSubscription = create_subscription<Odometry>(stateTopic, 1, stateCallback);
 
     const std::string opponentStateTopic = std::format("{}/{}", m_opponentNamespace, m_stateTopic);
-    const auto opponentStateCallback = [this](Float64MultiArray::SharedPtr state)
+    const auto opponentStateCallback = [this](Odometry::SharedPtr state)
     {
-        m_opponentState.set(state->data);
+        EulerAngles e = quaternionToEuler(state->pose.pose.orientation);
+        m_opponentState.set(State{
+            .positionX = state->pose.pose.position.x,
+            .positionY = state->pose.pose.position.y,
+            .theta = e.yaw,
+            .velocity = state->twist.twist.linear.x,
+            .steeringAngle = state->twist.twist.angular.z
+        });
     };
-    m_opponentStateSubscription = create_subscription<Float64MultiArray>(opponentStateTopic, 1, opponentStateCallback);
+    m_opponentStateSubscription = create_subscription<Odometry>(opponentStateTopic, 1, opponentStateCallback);
 
     m_timer = create_wall_timer(std::chrono::seconds(1), [this](){ updateControl(); });
 }
 
-AgentBase::State AgentBase::state() const
+AgentBase::State AgentBase::getState() const
 {
     return m_state.get();
 }
 
-AgentBase::State AgentBase::opponentState() const
+AgentBase::State AgentBase::getOpponentState() const
 {
     return m_opponentState.get();
 }
@@ -88,13 +104,4 @@ double AgentBase::velocityGain() const
 bool AgentBase::opponentPresent() const
 {
     return m_opponentPresent;
-}
-
-
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-//   rclcpp::spin(std::make_shared<AgentBase>());
-  rclcpp::shutdown();
-  return 0;
 }

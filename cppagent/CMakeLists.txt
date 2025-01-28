@@ -9,8 +9,17 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(ackermann_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(TBB REQUIRED)
 
-add_executable(agent src/agentbase.cpp)
+add_executable(agent 
+  src/agentbase.cpp
+  src/mapevaluatingagentbase.cpp
+  src/samplingagent.cpp
+  src/utils.cpp
+)
 
 target_include_directories(agent PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -19,9 +28,14 @@ target_include_directories(agent PRIVATE
 
 target_compile_features(agent PRIVATE cxx_std_20)
 
+target_link_libraries(agent TBB::tbb)
+
 ament_target_dependencies(agent 
   rclcpp
   ackermann_msgs
+  nav_msgs
+  geometry_msgs
+  tf2
 )
 
 install(

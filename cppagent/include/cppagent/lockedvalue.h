@@ -2,6 +2,8 @@
 #define LOCKEDVALUE_H
 
 #include <shared_mutex>
+#include <mutex>
+
 
 template <class C>
 class LockedValue

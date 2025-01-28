@@ -5,6 +5,7 @@
 
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -16,9 +17,16 @@ public:
     AgentBase();
 
 protected:
-    using State = std::vector<double>;
-    State state() const;
-    State opponentState() const;
+    struct State
+    {
+        double positionX;
+        double positionY;
+        double theta;
+        double velocity;
+        double steeringAngle;
+    };
+    State getState() const;
+    State getOpponentState() const;
 
     virtual void updateControl();
     
@@ -40,9 +48,9 @@ private:
     using AckermannDriveStamped = ackermann_msgs::msg::AckermannDriveStamped;
     rclcpp::Publisher<AckermannDriveStamped>::SharedPtr m_drivePublisher;
 
-    using Float64MultiArray = std_msgs::msg::Float64MultiArray;
-    rclcpp::Subscription<Float64MultiArray>::SharedPtr m_stateSubscription;
-    rclcpp::Subscription<Float64MultiArray>::SharedPtr m_opponentStateSubscription;
+    using Odometry = nav_msgs::msg::Odometry;
+    rclcpp::Subscription<Odometry>::SharedPtr m_stateSubscription;
+    rclcpp::Subscription<Odometry>::SharedPtr m_opponentStateSubscription;
 
     rclcpp::TimerBase::SharedPtr m_timer;
 

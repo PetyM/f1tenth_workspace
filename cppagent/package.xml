@@ -11,6 +11,9 @@
 
   <depend>rclcpp</depend>
   <depend>ackermann_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
 
   <exec_depend>f1tenth_gym_ros</exec_depend> 
 
