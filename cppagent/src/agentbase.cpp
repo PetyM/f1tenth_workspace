@@ -25,28 +25,28 @@ AgentBase::AgentBase()
     const std::string stateTopic = std::format("{}/{}", m_agentNamespace, m_stateTopic);
     const auto stateCallback = [this](Float64MultiArray::SharedPtr state)
     {
-        m_state = state->data;
+        m_state.set(state->data);
     };
     m_stateSubscription = create_subscription<Float64MultiArray>(stateTopic, 1, stateCallback);
 
     const std::string opponentStateTopic = std::format("{}/{}", m_opponentNamespace, m_stateTopic);
     const auto opponentStateCallback = [this](Float64MultiArray::SharedPtr state)
     {
-        m_opponentState = state->data;
+        m_opponentState.set(state->data);
     };
     m_opponentStateSubscription = create_subscription<Float64MultiArray>(opponentStateTopic, 1, opponentStateCallback);
 
     m_timer = create_wall_timer(std::chrono::seconds(1), [this](){ updateControl(); });
 }
 
-const AgentBase::State& AgentBase::state() const
+AgentBase::State AgentBase::state() const
 {
-    return m_state;
+    return m_state.get();
 }
 
-const AgentBase::State& AgentBase::opponentState() const
+AgentBase::State AgentBase::opponentState() const
 {
-    return m_opponentState;
+    return m_opponentState.get();
 }
 
 void AgentBase::updateControl()

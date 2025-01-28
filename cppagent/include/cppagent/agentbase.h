@@ -1,6 +1,8 @@
 #ifndef AGENTBASE_H
 #define AGENTBASE_H
 
+#include "cppagent/lockedvalue.h"
+
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 
@@ -16,8 +18,8 @@ public:
 
 protected:
     using State = std::vector<double>;
-    const State& state() const;
-    const State& opponentState() const;
+    State state() const;
+    State opponentState() const;
 
     virtual void updateControl();
     
@@ -45,8 +47,8 @@ private:
 
     rclcpp::TimerBase::SharedPtr m_timer;
 
-    State m_state;
-    State m_opponentState;
+    LockedValue<State> m_state;
+    LockedValue<State> m_opponentState;
 
     std::string m_agentNamespace;
     std::string m_opponentNamespace;
