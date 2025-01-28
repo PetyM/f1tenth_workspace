@@ -8,7 +8,6 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include <array>
 
 class AgentBase : public rclcpp::Node
 {
