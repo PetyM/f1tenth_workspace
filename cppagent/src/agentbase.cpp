@@ -55,12 +55,12 @@ AgentBase::AgentBase()
     m_timer = create_wall_timer(std::chrono::seconds(1), [this](){ updateControl(); });
 }
 
-AgentBase::State AgentBase::getState() const
+State AgentBase::getState() const
 {
     return m_state.get();
 }
 
-AgentBase::State AgentBase::getOpponentState() const
+State AgentBase::getOpponentState() const
 {
     return m_opponentState.get();
 }

@@ -19,6 +19,7 @@ add_executable(agent
   src/mapevaluatingagentbase.cpp
   src/samplingagent.cpp
   src/utils.cpp
+  src/dynamics.cpp
 )
 
 target_include_directories(agent PRIVATE

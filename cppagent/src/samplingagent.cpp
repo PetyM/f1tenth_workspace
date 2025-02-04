@@ -1,5 +1,8 @@
 #include "cppagent/samplingagent.h"
 
+#include "cppagent/parameters.h"
+#include "cppagent/dynamics.h"
+
 #include <execution>
 
 SamplingAgent::SamplingAgent()
@@ -8,28 +11,28 @@ SamplingAgent::SamplingAgent()
 
 }
 
-SamplingAgent::Action SamplingAgent::plan()
+Action SamplingAgent::plan()
 {
     const State state = getState();
     const std::vector<Action> samples = generateSamples(state);
-    const std::vector<Trajectory> trajectories = generateTrajectories(samples);
+    const std::vector<Trajectory> trajectories = generateTrajectories(samples, state);
 
     // TODO: evaluate trajectories and pick best
 
     return samples.at(0);
 }
 
-std::vector<SamplingAgent::Action> SamplingAgent::generateSamples(const SamplingAgent::State& state)
+std::vector<Action> SamplingAgent::generateSamples(const State& state)
 {
     std::vector<Action> samples = {};
     samples.reserve(VELOCITY_SAMPLE_COUNT * STEERING_ANGLE_SAMPLE_COUNT);
     
-    const double velocityMinimum = std::max(state.velocity - VELOCITY_DIFFERENCE_MAXIMUM, VELOCITY_MINIMUM);
-    const double velocityMaximum = std::min(state.velocity + VELOCITY_DIFFERENCE_MAXIMUM, VELOCITY_MAXIMUM);
+    const double velocityMinimum = std::max(state.velocity - VELOCITY_DIFFERENCE_MAXIMUM, parameters::VELOCITY_MINIMUM);
+    const double velocityMaximum = std::min(state.velocity + VELOCITY_DIFFERENCE_MAXIMUM, parameters::VELOCITY_MAXIMUM);
     const double velocityStep = (velocityMaximum - velocityMinimum) / static_cast<double>(VELOCITY_SAMPLE_COUNT);
 
-    const double steeringAngleMinimum = std::max(state.steeringAngle - STEERING_ANGLE_DIFFERENCE_MAXIMUM, STEERING_ANGLE_MINIMUM);
-    const double steeringAngleMaximum = std::min(state.steeringAngle + STEERING_ANGLE_DIFFERENCE_MAXIMUM, STEERING_ANGLE_MAXIMUM);
+    const double steeringAngleMinimum = std::max(state.steeringAngle - STEERING_ANGLE_DIFFERENCE_MAXIMUM, parameters::STEERING_MINIMUM);
+    const double steeringAngleMaximum = std::min(state.steeringAngle + STEERING_ANGLE_DIFFERENCE_MAXIMUM, parameters::STEERING_MAXIMUM);
     const double steeringAngleStep = (steeringAngleMaximum - steeringAngleMinimum) / static_cast<double>(STEERING_ANGLE_SAMPLE_COUNT);
 
     for (int i = 0; i < VELOCITY_SAMPLE_COUNT; ++i)
@@ -46,19 +49,24 @@ std::vector<SamplingAgent::Action> SamplingAgent::generateSamples(const Sampling
     return samples;
 }
 
-std::vector<SamplingAgent::Trajectory> SamplingAgent::generateTrajectories(const std::vector<Action>& samples)
+std::vector<SamplingAgent::Trajectory> SamplingAgent::generateTrajectories(const std::vector<Action>& samples, const State& currentState)
 {
     std::vector<Trajectory> trajectories = {};
     trajectories.reserve(samples.size());
 
-    static constexpr auto generateTrajectory = [](const Action& sample) -> Trajectory
+    static constexpr auto integrateState = [](const State& state, const Action& sample)
     {
-        Trajectory poses = {};
+        return rk4Integrator(state, sample, TIME_DELTA, kinematicModel);
+    };
+
+    const auto generateTrajectory = [currentState](const Action& sample) -> Trajectory
+    {
+        Trajectory poses = {currentState};
         poses.reserve(TRAJECTORY_POINT_COUNT);
 
-        for (int i = 0; i < TRAJECTORY_POINT_COUNT; ++i)
+        for (int i = 1; i < TRAJECTORY_POINT_COUNT; ++i)
         {
-            // TODO: dynamics
+            poses[i] = integrateState(poses[i - 1], sample);
         }
         return poses;
     };

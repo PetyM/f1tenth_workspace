@@ -2,6 +2,8 @@
 #define AGENTBASE_H
 
 #include "cppagent/lockedvalue.h"
+#include "cppagent/state.h"
+#include "cppagent/action.h"
 
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
@@ -17,24 +19,11 @@ public:
     AgentBase();
 
 protected:
-    struct State
-    {
-        double positionX;
-        double positionY;
-        double theta;
-        double velocity;
-        double steeringAngle;
-    };
     State getState() const;
     State getOpponentState() const;
 
     virtual void updateControl();
     
-    struct Action
-    {
-        double velocity;
-        double steeringAngle;
-    };
     virtual Action plan() = 0;
 
     const std::string& agentNamespace() const;

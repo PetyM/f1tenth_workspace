@@ -17,21 +17,17 @@ private:
     static std::vector<Action> generateSamples(const State& state);
 
     using Trajectory = std::vector<State>;
-    static std::vector<Trajectory> generateTrajectories(const std::vector<Action>& samples);
+    static std::vector<Trajectory> generateTrajectories(const std::vector<Action>& samples, const State& currentState);
 
 
     static constexpr unsigned VELOCITY_SAMPLE_COUNT = 16;
     static constexpr unsigned STEERING_ANGLE_SAMPLE_COUNT = 16;
     
-    static constexpr double VELOCITY_MINIMUM = 0.0;
-    static constexpr double VELOCITY_MAXIMUM = 0.0;
     static constexpr double VELOCITY_DIFFERENCE_MAXIMUM = 0.0;
-
-    static constexpr double STEERING_ANGLE_MINIMUM = 0.0;
-    static constexpr double STEERING_ANGLE_MAXIMUM = 0.0;
     static constexpr double STEERING_ANGLE_DIFFERENCE_MAXIMUM = 0.0;
 
     static constexpr unsigned TRAJECTORY_POINT_COUNT = 20;
+    static constexpr double TIME_DELTA = 0.1;
 
 };
 
