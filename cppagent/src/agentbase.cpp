@@ -72,7 +72,7 @@ void AgentBase::updateControl()
     auto message = AckermannDriveStamped();
     message.header.stamp = get_clock()->now();
     message.drive.speed = action.velocity;
-    message.drive.steering_angle = action.steeringAngle;
+    message.drive.steering_angle = action.steeringVelocity;
     m_drivePublisher->publish(message);
 }
 

@@ -3,33 +3,45 @@
 
 #include "cppagent/parameters.h"
 
-State kinematicModel(const State& state, const Action& action)
+#include <cmath>
+
+Action constrainAction(const State& state, const Action& action)
 {
-    return {};
+    return Action{
+        .acceleration = std::max(std::min({action.acceleration, 
+                                           parameters::ACCELERATION_MAXIMUM,
+                                           parameters::ACCELERATION_MAXIMUM * (parameters::WHEEL_SWITCH_VELOCITY / state.velocity)}),
+                                 -parameters::ACCELERATION_MAXIMUM),
+        .steeringVelocity = std::max(std::min(action.steeringVelocity, 
+                                              parameters::STEERING_VELOCITY_MAXIMUM), 
+                                     parameters::STEERING_VELOCITY_MINIMUM)
+    };
 }
 
-State singleTrackModel(const State& state, const Action& action)
+State kinematicSingleTrackModel(const State& state, const Action& action)
 {
-    return {};
+    const Action constrainedAction = constrainAction(state, action);
+    return State{
+        .positionX = state.velocity * cos(state.theta),
+        .positionY = state.velocity * sin(state.theta),
+        .theta = (state.velocity * tan(state.steeringAngle)) / parameters::AXLE_DISTANCE,
+        .velocity = constrainedAction.acceleration,
+        .steeringAngle = constrainedAction.steeringVelocity
+    };
 }
 
-State twinTrackModel(const State& state, const Action& action)
+State rk4Integrator(const State& state, const Action& action, double dt, Dynamics dynamics)
 {
-    return {};
-}
-
-State rk4Integrator(const State& state, const Action& action, double dt, Model model)
-{
-    const State d1 = model(state, action);
+    const State d1 = dynamics(state, action);
     const State s1 = state + d1 * (dt / 2.0);
 
-    const State d2 = model(s1, action);
+    const State d2 = dynamics(s1, action);
     const State s2 = state + d2 * (dt / 2.0);
 
-    const State d3 = model(s2, action);
+    const State d3 = dynamics(s2, action);
     const State s3 = state + d3 * dt;
 
-    const State d4 = model(s3, action);
+    const State d4 = dynamics(s3, action);
 
     return state + ((d1 + (d2 * 2.0) + (d3 * 2.0) + d4) * (dt / 6.0));
 }

@@ -4,8 +4,8 @@
 
 struct Action
 {
-    double velocity;
-    double steeringAngle;
+    double acceleration;
+    double steeringVelocity;
 };
 
 

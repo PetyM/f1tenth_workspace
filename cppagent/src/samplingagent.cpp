@@ -41,7 +41,7 @@ std::vector<Action> SamplingAgent::generateSamples(const State& state)
         {
             samples.push_back(Action {
                                 .velocity = velocityMinimum + (i * velocityStep),
-                                .steeringAngle = steeringAngleMinimum + (j * steeringAngleStep)
+                                .steeringVelocity = steeringAngleMinimum + (j * steeringAngleStep)
                               });
         }
     }
@@ -56,7 +56,7 @@ std::vector<SamplingAgent::Trajectory> SamplingAgent::generateTrajectories(const
 
     static constexpr auto integrateState = [](const State& state, const Action& sample)
     {
-        return rk4Integrator(state, sample, TIME_DELTA, kinematicModel);
+        return rk4Integrator(state, sample, TIME_DELTA, singleTrackDynamics);
     };
 
     const auto generateTrajectory = [currentState](const Action& sample) -> Trajectory

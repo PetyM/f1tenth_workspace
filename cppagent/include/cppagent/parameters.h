@@ -23,11 +23,13 @@ static constexpr double VEHICLE_WEIGHT = 3.74;
 
 static constexpr double AXLE_DISTANCE_FRONT = 0.15875;
 static constexpr double AXLE_DISTANCE_REAR = 0.17145;
+static constexpr double AXLE_DISTANCE = AXLE_DISTANCE_FRONT + AXLE_DISTANCE_REAR;
 
 static constexpr double CORNERING_STIFFNESS_FRONT = 4.718;
 static constexpr double CORNERING_STIFFNESS_REAR = 5.4562;
 
 static constexpr double INERTIA = 0.04712;
+static constexpr double WHEEL_SWITCH_VELOCITY = 7.319;
 
 };
 
