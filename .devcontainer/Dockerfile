@@ -16,7 +16,9 @@ RUN apt update && \
         ros-jazzy-navigation2 \
         ros-jazzy-nav2-bringup \
         ros-jazzy-ackermann-msgs \
-        libtbb-dev
+        ros-jazzy-vision-opencv \
+        libtbb-dev \
+        libopencv-dev
 
 RUN git clone -b v1.0.0 https://github.com/f1tenth/f1tenth_gym.git /opt/f1tenth_gym && \
     chown -R vscode:vscode /opt/f1tenth_gym && \

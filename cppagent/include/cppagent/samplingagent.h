@@ -17,7 +17,6 @@ protected:
 private:
     static std::vector<Action> generateSamples(const State& state);
 
-    using Trajectory = std::vector<State>;
     static std::vector<Trajectory> generateTrajectories(const std::vector<Action>& samples, const State& currentState);
 
     static constexpr Model MODEL = kinematicSingleTrackModel;
@@ -26,8 +25,8 @@ private:
     static constexpr unsigned VELOCITY_SAMPLE_COUNT = 16;
     static constexpr unsigned STEERING_ANGLE_SAMPLE_COUNT = 16;
     
-    static constexpr double VELOCITY_DIFFERENCE_MAXIMUM = 0.0;
-    static constexpr double STEERING_ANGLE_DIFFERENCE_MAXIMUM = 0.0;
+    // static constexpr double VELOCITY_DIFFERENCE_MAXIMUM = 0.0;
+    // static constexpr double STEERING_ANGLE_DIFFERENCE_MAXIMUM = 0.0;
 
     static constexpr unsigned TRAJECTORY_POINT_COUNT = 20;
     static constexpr double TIME_DELTA = 0.1;

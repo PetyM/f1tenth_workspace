@@ -1,6 +1,7 @@
 #include "cppagent/samplingagent.h"
 
 #include "cppagent/parameters.h"
+#include "cppagent/fuzzycompare.h"
 
 #include <execution>
 
@@ -26,21 +27,21 @@ std::vector<Action> SamplingAgent::generateSamples(const State& state)
     std::vector<Action> samples = {};
     samples.reserve(VELOCITY_SAMPLE_COUNT * STEERING_ANGLE_SAMPLE_COUNT);
     
-    const double velocityMinimum = std::max(state.velocity - VELOCITY_DIFFERENCE_MAXIMUM, parameters::VELOCITY_MINIMUM);
-    const double velocityMaximum = std::min(state.velocity + VELOCITY_DIFFERENCE_MAXIMUM, parameters::VELOCITY_MAXIMUM);
-    const double velocityStep = (velocityMaximum - velocityMinimum) / static_cast<double>(VELOCITY_SAMPLE_COUNT);
+    const double accelerationMinimum = nearZero(state.velocity) ? 0 : -parameters::ACCELERATION_MAXIMUM;
+    const double accelerationMaximum = equal(state.velocity, parameters::VELOCITY_MAXIMUM) ? 0 : parameters::ACCELERATION_MAXIMUM;
+    const double accelerationStep = (accelerationMaximum - accelerationMinimum) / static_cast<double>(VELOCITY_SAMPLE_COUNT);
 
-    const double steeringAngleMinimum = std::max(state.steeringAngle - STEERING_ANGLE_DIFFERENCE_MAXIMUM, parameters::STEERING_MINIMUM);
-    const double steeringAngleMaximum = std::min(state.steeringAngle + STEERING_ANGLE_DIFFERENCE_MAXIMUM, parameters::STEERING_MAXIMUM);
-    const double steeringAngleStep = (steeringAngleMaximum - steeringAngleMinimum) / static_cast<double>(STEERING_ANGLE_SAMPLE_COUNT);
+    const double steeringSpeedMinimum = equal(state.steeringAngle, parameters::STEERING_MINIMUM) ? 0 : parameters::STEERING_VELOCITY_MINIMUM;
+    const double steeringSpeedMaximum = equal(state.steeringAngle, parameters::STEERING_MAXIMUM) ? 0 : parameters::STEERING_VELOCITY_MAXIMUM;
+    const double steeringSpeedStep = (steeringSpeedMaximum - steeringSpeedMinimum) / static_cast<double>(STEERING_ANGLE_SAMPLE_COUNT);
 
     for (int i = 0; i < VELOCITY_SAMPLE_COUNT; ++i)
     {
         for (int j = 0; j < STEERING_ANGLE_SAMPLE_COUNT; ++j)
         {
             samples.push_back(Action {
-                                .velocity = velocityMinimum + (i * velocityStep),
-                                .steeringVelocity = steeringAngleMinimum + (j * steeringAngleStep)
+                                .acceleration = accelerationMinimum + (i * accelerationStep),
+                                .steeringVelocity = steeringSpeedMinimum + (j * steeringSpeedStep)
                               });
         }
     }

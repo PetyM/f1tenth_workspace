@@ -14,6 +14,9 @@
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>tf2</depend>
+  <depend>opencv4</depend>
+  <depend>tbb</depend>
+
 
   <exec_depend>f1tenth_gym_ros</exec_depend> 
 

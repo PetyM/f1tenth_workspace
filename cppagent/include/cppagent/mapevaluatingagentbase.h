@@ -2,8 +2,11 @@
 #define MAPEVALUATINGAGENTBASE_H
 
 #include "cppagent/agentbase.h"
-#include "cppagent/lockedvalue.h"
+#include "cppagent/trajectoryevaluation.h"
 
+#include <opencv2/opencv.hpp>
+
+#include <shared_mutex>
 #include <vector>
 
 class MapEvaluatingAgentBase : public AgentBase
@@ -13,14 +16,20 @@ public:
     MapEvaluatingAgentBase();
 
 protected:
-    using Costmap = std::vector<std::vector<double>>;
+    const std::string& costmapTopic() const;
+    const std::string& mapName() const;
+    const std::string& mapPath() const;
 
-    Costmap costmap() const;
+    using Trajectory = std::vector<State>;
+    std::vector<TrajectoryEvaluation> evaluateTrajectories(const std::vector<Trajectory>& trajectories) const;
+
 
 private:
-
-    LockedValue<Costmap> m_costmap;
-
+    cv::Mat m_baseCostmap;
+    
+    std::string m_costmapTopic;
+    std::string m_mapName;
+    std::string m_mapPath;
 };
 
 #endif // MAPEVALUATINGAGENTBASE_H
