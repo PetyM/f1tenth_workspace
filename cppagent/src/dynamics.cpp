@@ -7,9 +7,12 @@
 
 Action constrainAction(const State& state, const Action& action)
 {
+    const double maximumAcceleration = state.velocity > parameters::WHEEL_SWITCH_VELOCITY 
+                                        ? parameters::ACCELERATION_MAXIMUM * (parameters::WHEEL_SWITCH_VELOCITY / state.velocity)
+                                        : parameters::ACCELERATION_MAXIMUM;
     return Action{
         .acceleration = std::max(std::min({action.acceleration, 
-                                           parameters::ACCELERATION_MAXIMUM,
+                                           maximumAcceleration,
                                            parameters::ACCELERATION_MAXIMUM * (parameters::WHEEL_SWITCH_VELOCITY / state.velocity)}),
                                  -parameters::ACCELERATION_MAXIMUM),
         .steeringVelocity = std::max(std::min(action.steeringVelocity, 
@@ -30,7 +33,7 @@ State kinematicSingleTrackModel(const State& state, const Action& action)
     };
 }
 
-State rk4Integrator(const State& state, const Action& action, double dt, Dynamics dynamics)
+State rk4Integrator(const State& state, const Action& action, double dt, Model dynamics)
 {
     const State d1 = dynamics(state, action);
     const State s1 = state + d1 * (dt / 2.0);

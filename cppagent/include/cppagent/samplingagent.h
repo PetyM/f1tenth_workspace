@@ -2,6 +2,7 @@
 #define SAMPLINGAGENT_H
 
 #include "cppagent/mapevaluatingagentbase.h"
+#include "cppagent/dynamics.h"
 
 
 class SamplingAgent : public MapEvaluatingAgentBase
@@ -19,6 +20,8 @@ private:
     using Trajectory = std::vector<State>;
     static std::vector<Trajectory> generateTrajectories(const std::vector<Action>& samples, const State& currentState);
 
+    static constexpr Model MODEL = kinematicSingleTrackModel;
+    static constexpr Integrator INTEGRATOR = rk4Integrator;
 
     static constexpr unsigned VELOCITY_SAMPLE_COUNT = 16;
     static constexpr unsigned STEERING_ANGLE_SAMPLE_COUNT = 16;

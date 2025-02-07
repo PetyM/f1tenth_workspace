@@ -1,7 +1,6 @@
 #include "cppagent/samplingagent.h"
 
 #include "cppagent/parameters.h"
-#include "cppagent/dynamics.h"
 
 #include <execution>
 
@@ -54,11 +53,6 @@ std::vector<SamplingAgent::Trajectory> SamplingAgent::generateTrajectories(const
     std::vector<Trajectory> trajectories = {};
     trajectories.reserve(samples.size());
 
-    static constexpr auto integrateState = [](const State& state, const Action& sample)
-    {
-        return rk4Integrator(state, sample, TIME_DELTA, singleTrackDynamics);
-    };
-
     const auto generateTrajectory = [currentState](const Action& sample) -> Trajectory
     {
         Trajectory poses = {currentState};
@@ -66,7 +60,7 @@ std::vector<SamplingAgent::Trajectory> SamplingAgent::generateTrajectories(const
 
         for (int i = 1; i < TRAJECTORY_POINT_COUNT; ++i)
         {
-            poses[i] = integrateState(poses[i - 1], sample);
+            poses[i] = INTEGRATOR(poses[i - 1], sample, TIME_DELTA, MODEL);
         }
         return poses;
     };
