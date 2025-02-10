@@ -15,7 +15,7 @@ find_package(tf2 REQUIRED)
 find_package(TBB REQUIRED)
 find_package(OpenCV REQUIRED)
 
-add_executable(agent 
+add_executable(samplingagent 
   src/agentbase.cpp
   src/mapevaluatingagentbase.cpp
   src/samplingagent.cpp
@@ -23,16 +23,16 @@ add_executable(agent
   src/dynamics.cpp
 )
 
-target_include_directories(agent PRIVATE
+target_include_directories(samplingagent PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(agent PRIVATE cxx_std_20)
+target_compile_features(samplingagent PRIVATE cxx_std_20)
 
-target_link_libraries(agent TBB::tbb)
+target_link_libraries(samplingagent TBB::tbb)
 
-ament_target_dependencies(agent 
+ament_target_dependencies(samplingagent 
   rclcpp
   ackermann_msgs
   nav_msgs
@@ -42,10 +42,8 @@ ament_target_dependencies(agent
 )
 
 install(
-  TARGETS agent
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  TARGETS samplingagent
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
