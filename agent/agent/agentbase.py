@@ -42,7 +42,7 @@ class AgentBase(rclpy.node.Node):
         if self.opponent_present:
             self.opp_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{self.opponent_namespace}/{self.state_topic}', self.opp_state_cb, 10)
         
-        # self.timer_update_control: rclpy.timer.Timer = self.create_timer(0.03, self.update_control)
+        self.timer_update_control: rclpy.timer.Timer = self.create_timer(0.03, self.update_control)
 
         self.ego_state: list[float] = [0,0,0,0,0,0,0]
         self.opp_state: list[float] = [0,0,0,0,0,0,0]
@@ -67,8 +67,8 @@ class AgentBase(rclpy.node.Node):
 
         msg = AckermannDriveStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.drive.speed = float(action[1])
-        msg.drive.steering_angle = float(action[0])
+        msg.drive.acceleration = float(action[1])
+        msg.drive.steering_angle_velocity = float(action[0])
         self.drive_publiser.publish(msg)
 
         self.get_logger().info(f"AgentBase.update: State: v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")

@@ -3,6 +3,7 @@ import rclpy.client
 import rclpy.publisher
 
 
+import math
 import numpy as np
 from model import vehicle_dynamics, integrate_state
 
@@ -57,13 +58,14 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.trajectory_points: int = 20
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
-        self.minimum_velocity: float = 0
-        self.maximum_velocity: float = self.parameters["v_max"] * self.velocity_gain
-        self.minimum_steering_angle: float = self.parameters["s_min"]
-        self.maximum_steering_angle: float = self.parameters["s_max"]
-        
-        self.maximum_steering_difference: float = self.parameters["sv_max"] * self.trajectory_time_difference
-        self.maximum_velocity_difference: float = self.parameters["a_max"] * self.trajectory_time_difference
+        self.acceleration_maximum: float = self.parameters["a_max"]
+
+        self.velocity_maximum: float = self.parameters["v_max"]
+        self.steering_angle_maximum: float = self.parameters["s_max"]
+        self.steering_angle_minimum: float = self.parameters["s_min"]
+
+        self.steering_speed_minimum: float = self.parameters["s_min"]
+        self.steering_speed_maximum: float = self.parameters["s_max"]
 
         self.launched: bool = False
 
@@ -74,34 +76,16 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
 
     def generate_samples(self, state: State):   
-        maximum_steering_difference = self.maximum_steering_difference # / (state.velocity**2) if state.velocity > 1 else self.maximum_steering_difference
-
-        maximum_steering = state.steering_angle + maximum_steering_difference
-        minimum_steering = state.steering_angle - maximum_steering_difference
-
-        if maximum_steering > self.maximum_steering_angle:
-            maximum_steering = self.maximum_steering_angle                                                            
-            minimum_steering = max(-self.minimum_steering_angle, maximum_steering - 2 * maximum_steering_difference)
-        elif minimum_steering < -self.maximum_steering_angle:
-            minimum_steering = -self.minimum_steering_angle
-            maximum_steering = min(self.maximum_steering_angle, minimum_steering + 2 * maximum_steering_difference)
+        acceleration_minimum = 0 if (state.velocity < 3.0) else -self.acceleration_maximum / 2
+        acceleration_maximum = 0 if math.isclose(state.velocity, self.velocity_maximum) else self.acceleration_maximum
         
-        steering_angles = np.linspace(minimum_steering, maximum_steering, self.steering_saples_count)
-        
-        minimum_velocity = state.velocity - self.maximum_velocity_difference
-        maximum_velocity = state.velocity + self.maximum_velocity_difference
+        steering_speed_minimum = 0 if math.isclose(state.steering_angle, self.steering_angle_minimum) else self.steering_speed_minimum
+        steering_speed_maximum = 0 if math.isclose(state.steering_angle, self.steering_angle_maximum) else self.steering_speed_maximum
 
-        if maximum_velocity > self.maximum_velocity:
-            maximum_velocity = self.maximum_velocity
-            minimum_velocity = max(self.minimum_velocity, maximum_velocity - 2 * self.maximum_velocity_difference)
-        elif minimum_velocity < self.minimum_velocity:
-            minimum_velocity = self.minimum_velocity
-            maximum_velocity = min(self.maximum_velocity, minimum_velocity + 2 * self.maximum_velocity_difference)
-        
+        accelerations = np.linspace(acceleration_minimum, acceleration_maximum, self.velocity_samples_count)
+        steering_speeds = np.linspace(steering_speed_minimum, steering_speed_maximum, self.steering_saples_count)
 
-        velocities = np.linspace(minimum_velocity, maximum_velocity, self.velocity_samples_count)
-
-        samples = np.stack(np.meshgrid(steering_angles, velocities), axis=2)
+        samples = np.stack(np.meshgrid(steering_speeds, accelerations), axis=2)
         samples = np.reshape(samples, (-1, 2))
         return samples
  
@@ -129,7 +113,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         if not self.launched:
             self.launched = state.velocity > 0
-            return [0, self.maximum_velocity]
+            return [0, self.acceleration_maximum]
    
         control_samples = self.generate_samples(state)
 
@@ -168,7 +152,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
     
         # relative_velocity = state.velocity / self.maximum_velocity
         # cost_factor = 0.5 + 0.5 * (relative_velocity - 0.5)
-        combined_scores = progress_scores + cost_scores
+        combined_scores = progress_scores + 0.5 * cost_scores
 
         best = np.argmin(combined_scores)
 

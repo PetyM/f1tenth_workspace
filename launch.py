@@ -60,7 +60,7 @@ def generate_launch_description():
     )
 
     ego_agent_node = Node(
-        package='cppagent',
+        package='agent',
         executable='samplingagent',
         name='ego_agent',
         parameters=[{'opponent_present': opponent},
