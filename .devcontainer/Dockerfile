@@ -17,6 +17,7 @@ RUN apt update && \
         ros-jazzy-nav2-bringup \
         ros-jazzy-ackermann-msgs \
         ros-jazzy-vision-opencv \
+        ros-jazzy-rviz-2d-overlay-plugins \
         libtbb-dev \
         libopencv-dev
 

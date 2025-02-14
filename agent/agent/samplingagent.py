@@ -52,20 +52,20 @@ class SamplingAgent(MapEvaluatingAgentBase):
                                  "width": 0.31,
                                  "length": 0.58}
 
-        self.steering_saples_count: int = 5
+        self.steering_saples_count: int = 7
         self.velocity_samples_count: int = 5
         self.prediction_horizont: float = 1.0
         self.trajectory_points: int = 20
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
-        self.acceleration_maximum: float = self.parameters["a_max"]
+        self.acceleration_maximum: float = self.parameters["a_max"] / 3
 
-        self.velocity_maximum: float = self.parameters["v_max"]
+        self.velocity_maximum: float = self.parameters["v_max"] / 2
         self.steering_angle_maximum: float = self.parameters["s_max"]
         self.steering_angle_minimum: float = self.parameters["s_min"]
 
-        self.steering_speed_minimum: float = self.parameters["s_min"]
-        self.steering_speed_maximum: float = self.parameters["s_max"]
+        self.steering_speed_minimum: float = self.parameters["s_min"] / 3
+        self.steering_speed_maximum: float = self.parameters["s_max"] / 3
 
         self.launched: bool = False
 
@@ -76,7 +76,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
 
     def generate_samples(self, state: State):   
-        acceleration_minimum = 0 if (state.velocity < 3.0) else -self.acceleration_maximum / 2
+        acceleration_minimum = 0 if (state.velocity < 3.0) else -self.acceleration_maximum
         acceleration_maximum = 0 if math.isclose(state.velocity, self.velocity_maximum) else self.acceleration_maximum
         
         steering_speed_minimum = 0 if math.isclose(state.steering_angle, self.steering_angle_minimum) else self.steering_speed_minimum
