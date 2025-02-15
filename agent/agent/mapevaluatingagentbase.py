@@ -104,7 +104,7 @@ class MapEvaluatingAgentBase(AgentBase):
             costmap = 255 - np.flip(iio.imread(f"{map_folder_path}/{map_name}_map.png"), 0)
             costmap = (costmap > 0).astype(np.uint8)
             
-            radius = 5
+            radius = 6
             dilation_footprint = np.zeros((2 * radius, 2 * radius))
             rx, ry = np.indices(dilation_footprint.shape)
             radius_grid = (rx - radius)**2 + (ry - radius)**2

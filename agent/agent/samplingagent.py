@@ -12,6 +12,7 @@ from state import State
 from geometry_msgs.msg import Pose2D
 
 import conversions
+from f1tenth_gym.envs.dynamic_models import vehicle_dynamics_st
 
 from agent.mapevaluatingagentbase import MapEvaluatingAgentBase
 from agent.trajectory import Trajectory, TrajectoryEvaluation
@@ -53,19 +54,19 @@ class SamplingAgent(MapEvaluatingAgentBase):
                                  "length": 0.58}
 
         self.steering_saples_count: int = 7
-        self.velocity_samples_count: int = 5
+        self.velocity_samples_count: int = 7
         self.prediction_horizont: float = 1.0
         self.trajectory_points: int = 20
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
         
-        self.acceleration_maximum: float = self.parameters["a_max"] / 3
+        self.acceleration_maximum: float = self.parameters["a_max"] / 2.0
 
-        self.velocity_maximum: float = self.parameters["v_max"] / 2
+        self.velocity_maximum: float = self.parameters["v_max"] * 0.5
         self.steering_angle_maximum: float = self.parameters["s_max"]
         self.steering_angle_minimum: float = self.parameters["s_min"]
 
-        self.steering_speed_minimum: float = self.parameters["s_min"] / 3
-        self.steering_speed_maximum: float = self.parameters["s_max"] / 3
+        self.steering_speed_minimum: float = self.parameters["s_min"]
+        self.steering_speed_maximum: float = self.parameters["s_max"]
 
         self.launched: bool = False
 
@@ -76,7 +77,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
 
     def generate_samples(self, state: State):   
-        acceleration_minimum = 0 if (state.velocity < 3.0) else -self.acceleration_maximum
+        acceleration_minimum = 0 if (state.velocity < 5.0) else -self.acceleration_maximum
         acceleration_maximum = 0 if (state.velocity > self.velocity_maximum) else self.acceleration_maximum
         
         steering_speed_minimum = 0 if (state.steering_angle < self.steering_angle_minimum) else self.steering_speed_minimum
@@ -100,7 +101,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
             poses.append(conversions.array_to_pose(s[:3]))
 
             for _ in range(self.trajectory_points - 1):
-                s = integrate_state(vehicle_dynamics, s, control[i], self.trajectory_time_difference, self.parameters)
+                s = integrate_state(vehicle_dynamics_st, s, control[i], self.trajectory_time_difference, self.parameters)
                 poses.append(conversions.array_to_pose(s[:3]))
 
             trajectories.append(Trajectory(poses=poses))
@@ -150,9 +151,11 @@ class SamplingAgent(MapEvaluatingAgentBase):
             progress_scores[trajectories_by_progress[i][0]] = i
             cost_scores[trajectories_by_cost[i][0]] = i
     
-        # relative_velocity = state.velocity / self.maximum_velocity
-        # cost_factor = 0.5 + 0.5 * (relative_velocity - 0.5)
-        combined_scores = progress_scores + 0.5 * cost_scores
+        relative_velocity = state.velocity / self.velocity_maximum
+        # variance_factor = 0.0
+        # progress_weight = 1.0 + (variance_factor * relative_velocity) - (variance_factor / 2.0)
+        # cost_weight = 1.0 + (-variance_factor * relative_velocity) + (variance_factor / 2.0)
+        combined_scores = (progress_scores) + (cost_scores)
 
         best = np.argmin(combined_scores)
 
