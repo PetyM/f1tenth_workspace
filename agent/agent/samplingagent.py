@@ -77,10 +77,10 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
     def generate_samples(self, state: State):   
         acceleration_minimum = 0 if (state.velocity < 3.0) else -self.acceleration_maximum
-        acceleration_maximum = 0 if math.isclose(state.velocity, self.velocity_maximum) else self.acceleration_maximum
+        acceleration_maximum = 0 if (state.velocity > self.velocity_maximum) else self.acceleration_maximum
         
-        steering_speed_minimum = 0 if math.isclose(state.steering_angle, self.steering_angle_minimum) else self.steering_speed_minimum
-        steering_speed_maximum = 0 if math.isclose(state.steering_angle, self.steering_angle_maximum) else self.steering_speed_maximum
+        steering_speed_minimum = 0 if (state.steering_angle < self.steering_angle_minimum) else self.steering_speed_minimum
+        steering_speed_maximum = 0 if (state.steering_angle > self.steering_angle_maximum) else self.steering_speed_maximum
 
         accelerations = np.linspace(acceleration_minimum, acceleration_maximum, self.velocity_samples_count)
         steering_speeds = np.linspace(steering_speed_minimum, steering_speed_maximum, self.steering_saples_count)
