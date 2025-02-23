@@ -73,9 +73,9 @@ def dilate_map(map: np.ndarray, radius: int) -> np.ndarray:
 
 
 if __name__ == "__main__":
-    MAP_NAME: str = "Spa"
+    MAP_NAME: str = "Spielberg"
     MAP_FOLDER_PATH: str = pathlib.Path(__file__).parent.resolve() / "f1tenth_racetracks" / MAP_NAME
-    ANGLE_DIFFERENCE_STEP: int = 50
+    ANGLE_DIFFERENCE_STEP: int = 60
 
     map_info = load_map_info(MAP_FOLDER_PATH, MAP_NAME)
     map = load_map(MAP_FOLDER_PATH, MAP_NAME)
@@ -103,8 +103,8 @@ if __name__ == "__main__":
         centerline_index_map[p[0], p[1]] = centerline_index
 
         centerline_point = centerline[centerline_index, :]
-        next_centerline_point = centerline[(centerline_index + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
-        previous_centerline_point = centerline[(centerline_index - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        next_centerline_point = centerline[(centerline_index - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        previous_centerline_point = centerline[(centerline_index + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
         
         next_heading_vector = next_centerline_point - centerline_point
         previous_heading_vector = centerline_point - previous_centerline_point
@@ -115,6 +115,9 @@ if __name__ == "__main__":
         previous_angle = np.arctan2(previous_heading_vector[1], previous_heading_vector[0])
 
         # print(f'Angle to next: {next_angle}, from prev: {previous_angle}')
+
+        next_angle = np.angle(np.exp(1j * next_angle))
+        previous_angle = np.angle(np.exp(1j * previous_angle))
 
         next_angle_map[p[0], p[1]] = next_angle
         previous_angle_map[p[0], p[1]] = previous_angle
