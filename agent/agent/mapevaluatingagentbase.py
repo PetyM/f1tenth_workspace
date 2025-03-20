@@ -50,7 +50,9 @@ class MapEvaluatingAgentBase(AgentBase):
                                            history=rclpy.qos.HistoryPolicy.KEEP_LAST,
                                            depth=5)
         
-        self.map: np.ndarray = None
+        self.costmap_base: np.ndarray = None
+        self.centerline_index_map: np.ndarray = None
+        self.curvature_map: np.ndarray = None
         self.map_info: MapMetaData = MapMetaData()
 
         self.costmap_publisher: rclpy.publisher.Publisher = self.create_publisher(OccupancyGrid, f'{self.agent_namespace}/{costmap_topic}', qos_profile)
@@ -88,45 +90,28 @@ class MapEvaluatingAgentBase(AgentBase):
             self.map_info.origin.orientation.w = 1.0
             self.map_info.map_load_time = self.get_clock().now().to_msg()
 
-        costmap_path = pathlib.Path(f'{map_name}_costmap.png')
+        costmap_path = pathlib.Path(f'{map_name}_costmap.npy')
         if costmap_path.exists():
-            self.get_logger().warn(f'MapEvaluatingAgentBase.prepare_costmap: Costmap found. Using previously generated costmap ({costmap_path})')
-
-            self.map = iio.imread(costmap_path)
-            
+            self.costmap_base = np.load(costmap_path)
         else:
-            self.get_logger().warn('MapEvaluatingAgentBase.prepare_costmap: Costmap NOT found. Calculating costmap...')
+            self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Costmap NOT found.')
 
-            # raceline_file = pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv")
-            # raceline = Raceline.from_raceline_file(raceline_file)
-            # raceline_points = np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
+        centerline_index_map_path = pathlib.Path(f'{map_name}_centerline_index_map.npy')
+        if centerline_index_map_path.exists():
+            self.centerline_index_map = np.load(centerline_index_map_path)
+        else:
+            self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Centerline index map NOT found.')
 
-            costmap = 255 - np.flip(iio.imread(f"{map_folder_path}/{map_name}_map.png"), 0)
-            costmap = (costmap > 0).astype(np.uint8)
-            
-            radius = 6
-            dilation_footprint = np.zeros((2 * radius, 2 * radius))
-            rx, ry = np.indices(dilation_footprint.shape)
-            radius_grid = (rx - radius)**2 + (ry - radius)**2
-            dilation_footprint[radius_grid <= radius**2] = 1
-            costmap = scipy.ndimage.morphology.grey_dilation(costmap, footprint=dilation_footprint)
+        curvature_map_path = pathlib.Path(f'{map_name}_curvature_map.npy')
+        if curvature_map_path.exists():
+            self.curvature_map = np.load(curvature_map_path)
+        else:
+            self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Curvature map NOT found.')
 
-            # assume map origin (0,0) is position on track (cars start at (0,0) by default)
-            map_origin_in_grid = self.map_to_grid_coordinates(Vector3())
 
-            track_points = skimage.segmentation.flood(costmap, (map_origin_in_grid[0], map_origin_in_grid[1]))
-
-            final_costmap = np.full_like(costmap, 100)
-            for p in np.argwhere(track_points):
-                _, distance_from_raceline, _, _ = nearest_point_on_trajectory(self.grid_to_map_coordinates(p), self.centerline)
-                final_costmap[p[0], p[1]] = 100 * distance_from_raceline
-
-            self.map = final_costmap
-            iio.imwrite(costmap_path, self.map)
-
-        self.map_info.width = self.map.shape[0]
-        self.map_info.height = self.map.shape[1]
-        self.costmap = self.map
+        self.map_info.width = self.costmap_base.shape[0]
+        self.map_info.height = self.costmap_base.shape[1]
+        self.costmap = self.costmap_base
 
 
     def map_to_grid_coordinates(self, coordinate: Vector3|Pose2D) -> np.ndarray:
@@ -142,22 +127,22 @@ class MapEvaluatingAgentBase(AgentBase):
 
 
     def update_costmap(self):
-        if self.map is None:
+        if self.costmap_base is None:
             return  
         start = self.get_clock().now()
 
         opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=self.opp_state[0], y=self.opp_state[1], theta=self.opp_state[4]))
 
-        costmap = np.zeros_like(self.map)
+        costmap = np.zeros_like(self.costmap_base)
 
         if self.opponent_present:
-            opponent_costmap = np.zeros_like(self.map)
+            opponent_costmap = np.zeros_like(self.costmap_base)
             opponent_costmap[opponent_grid_position[0] - self.mask_offset - 1: opponent_grid_position[0] + self.mask_offset, opponent_grid_position[1] - self.mask_offset -1 : opponent_grid_position[1] + self.mask_offset] = self.opponent_mask
 
             costmap = np.add(costmap, opponent_costmap)
 
 
-        costmap = np.add(costmap, self.map)
+        costmap = np.add(costmap, self.costmap_base)
 
         self.costmap = costmap
 
@@ -177,9 +162,10 @@ class MapEvaluatingAgentBase(AgentBase):
         costmap: np.ndarray = self.costmap.copy()
 
         values: list[TrajectoryEvaluation] = []
+    
+        initial_pose_in_grid: np.ndarray = self.map_to_grid_coordinates(trajectories[0].poses[0]).clip([0, 0], [self.map_info.width - 1, self.map_info.height - 1])
 
-        _, _, _, initial_centerline_index = nearest_point_on_trajectory(np.array([trajectories[0].poses[0].x, trajectories[0].poses[0].y]), self.centerline)
-
+        initial_centerline_index = self.centerline_index_map[initial_pose_in_grid[0], initial_pose_in_grid[1]]
 
         trajectory: Trajectory
         for trajectory in trajectories:
@@ -196,7 +182,8 @@ class MapEvaluatingAgentBase(AgentBase):
  
                 evaluation.cost = evaluation.cost + pose_value
 
-            _, _, _, centerline_index = nearest_point_on_trajectory(np.array([trajectory.poses[-1].x, trajectory.poses[-1].y]), self.centerline)
+            last_trajectory_pose_in_grid: np.ndarray = self.map_to_grid_coordinates(trajectory.poses[-1]).clip([0, 0], [self.map_info.width - 1, self.map_info.height - 1])
+            centerline_index  = self.centerline_index_map[last_trajectory_pose_in_grid[0], last_trajectory_pose_in_grid[1]]
 
             if centerline_index < initial_centerline_index:
                 evaluation.progress = float(centerline_index + initial_centerline_index - self.centerline.shape[0])
