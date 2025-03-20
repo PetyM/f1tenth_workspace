@@ -77,6 +77,9 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
 
     def generate_samples(self, state: State):   
+        curvature = self.get_curvature_for_position(state.position)
+        self.get_logger().warn(f'Curvature: {curvature}')
+        
         acceleration_minimum = 0 if (state.velocity < 5.0) else -self.acceleration_maximum
         acceleration_maximum = 0 if (state.velocity > self.velocity_maximum) else self.acceleration_maximum
         

@@ -195,3 +195,8 @@ class MapEvaluatingAgentBase(AgentBase):
             
         self.map_log and self.get_logger().info(f"MapEvaluatingAgentBase.evaluate_trajectories: Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
         return values
+
+
+    def get_curvature_for_position(self, position: np.ndarray) -> float:
+        position_in_grid = self.map_to_grid_coordinates(Pose2D(x=position[0], y=position[1]))
+        return self.curvature_map[position_in_grid[0], position_in_grid[1]]
