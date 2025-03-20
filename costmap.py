@@ -90,7 +90,7 @@ def calculate_curvature(p1, p2, p3):
 if __name__ == "__main__":
     MAP_NAME: str = "Spielberg"
     MAP_FOLDER_PATH: str = pathlib.Path(__file__).parent.resolve() / "f1tenth_racetracks" / MAP_NAME
-    ANGLE_DIFFERENCE_STEP: int = 120
+    ANGLE_DIFFERENCE_STEP: int = 100
 
     map_info = load_map_info(MAP_FOLDER_PATH, MAP_NAME)
     map = load_map(MAP_FOLDER_PATH, MAP_NAME)
@@ -102,12 +102,8 @@ if __name__ == "__main__":
     map_origin_in_grid = map_to_grid_coordinates(map_info, Vector3())
     track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
 
-    cost_map = np.full_like(map, 100.0, dtype=float)
+    costmap = np.full_like(map, 100.0, dtype=float)
     centerline_index_map = np.full_like(map, 0, dtype=int)
-
-    next_angle_map = np.full_like(map, 0.0, dtype=float)
-    previous_angle_map = np.full_like(map, 0.0, dtype=float)
-    angle_difference_map = np.full_like(map, 0.0, dtype=float)
     curvature_map = np.full_like(map, 0.0, dtype=float)
 
     alpha_map = np.full_like(map, 0, dtype=float)
@@ -115,52 +111,21 @@ if __name__ == "__main__":
 
     for p in np.argwhere(track_points):
         _, distance_from_raceline, _, centerline_index = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
-        cost_map[p[0], p[1]] = 100 * distance_from_raceline
-        centerline_index_map[p[0], p[1]] = centerline_index
-
+        
         centerline_point = centerline[centerline_index, :]
         next_centerline_point = centerline[(centerline_index - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
         previous_centerline_point = centerline[(centerline_index + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
         
-        next_heading_vector = next_centerline_point - previous_centerline_point
-        previous_heading_vector = centerline_point - previous_centerline_point
-
-        # print(f'Distance to next: {np.linalg.norm(next_heading_vector)}, from prev: {np.linalg.norm(previous_heading_vector)}')
-
-        next_angle = np.arctan2(next_heading_vector[1], next_heading_vector[0])
-        previous_angle = np.arctan2(previous_heading_vector[1], previous_heading_vector[0])
-
-        # print(f'Angle to next: {next_angle}, from prev: {previous_angle}')
-
-        # next_angle = np.angle(np.exp(1j * next_angle))
-        # previous_angle = np.angle(np.exp(1j * previous_angle))
-
-        next_angle_map[p[0], p[1]] = next_angle
-        previous_angle_map[p[0], p[1]] = previous_angle
-        angle_difference_map[p[0], p[1]] = next_angle - previous_angle
+        costmap[p[0], p[1]] = 100 * distance_from_raceline
+        centerline_index_map[p[0], p[1]] = centerline_index
         curvature_map[p[0], p[1]] = calculate_curvature(previous_centerline_point, centerline_point, next_centerline_point)
 
 
-    # next_angle_map[track_points] -= next_angle_map[track_points].min()
-    # next_angle_map[track_points] /= next_angle_map[track_points].max()
-    # plt.imshow(next_angle_map, cmap='hot', interpolation='none', alpha=alpha_map)
-    # plt.show()
-
-    # previous_angle_map[track_points] -= previous_angle_map[track_points].min()
-    # previous_angle_map[track_points] /= previous_angle_map[track_points].max()
-    # plt.imshow(previous_angle_map, cmap='hot', interpolation='none', alpha=alpha_map)
-    # plt.show()
-
-    # angle_difference_map[track_points] /= np.abs(angle_difference_map[track_points]).max()
-    # plt.imshow(angle_difference_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    # plt.colorbar()
-    # plt.savefig(f'{MAP_NAME}_angle_difference.png', format='png')
-    # plt.show()
+    np.save(f'{MAP_NAME}_costmap', costmap)
+    np.save(f'{MAP_NAME}_curvature_map', curvature_map)
+    np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
 
     plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
     plt.colorbar()
-    plt.savefig(f'{MAP_NAME}_curvature_{ANGLE_DIFFERENCE_STEP}.png', format='png')
-
-
     plt.show()
 
