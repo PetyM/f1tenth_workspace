@@ -77,10 +77,10 @@ def calculate_curvature(p1, p2, p3):
     L2 = np.linalg.norm(p3 - p2)
     L3 = np.linalg.norm(p3 - p1)
 
-    A = 0.5 * np.linalg.det(np.array([[p1[0], p1[1], 1], 
-                                       [p2[0], p2[1], 1], 
+    A = 0.5 * np.linalg.det(np.array([[p1[0], p1[1], 1],
+                                       [p2[0], p2[1], 1],
                                        [p3[0], p3[1], 1]]))
-    
+
     if L1 * L2 * L3 != 0:
         curvature = 2 * A / (L1 * L2 * L3)
     else:
@@ -104,28 +104,28 @@ if __name__ == "__main__":
 
     costmap = np.full_like(map, 100.0, dtype=float)
     centerline_index_map = np.full_like(map, 0, dtype=int)
-    curvature_map = np.full_like(map, 0.0, dtype=float)
 
     alpha_map = np.full_like(map, 0, dtype=float)
     alpha_map[track_points] = 1.0
 
     for p in np.argwhere(track_points):
         _, distance_from_raceline, _, centerline_index = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
-        
-        centerline_point = centerline[centerline_index, :]
-        next_centerline_point = centerline[(centerline_index - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
-        previous_centerline_point = centerline[(centerline_index + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
-        
         costmap[p[0], p[1]] = 100 * distance_from_raceline
         centerline_index_map[p[0], p[1]] = centerline_index
-        curvature_map[p[0], p[1]] = calculate_curvature(previous_centerline_point, centerline_point, next_centerline_point)
+
+    curvature_map = np.zeros((centerline.shape[0]), dtype=float)
+    for p in range(0, centerline.shape[0]):
+        centerline_point = centerline[p, :]
+        next_centerline_point = centerline[(p - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        previous_centerline_point = centerline[(p + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+
+        curvature_map[p] = calculate_curvature(previous_centerline_point, centerline_point, next_centerline_point)
 
 
     np.save(f'{MAP_NAME}_costmap', costmap)
     np.save(f'{MAP_NAME}_curvature_map', curvature_map)
     np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
 
-    plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    plt.colorbar()
-    plt.show()
-
+    # plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    # plt.colorbar()
+    # plt.show()

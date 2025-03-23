@@ -24,7 +24,7 @@ import std_msgs.msg as std_msgs
 class SamplingAgent(MapEvaluatingAgentBase):
     def __init__(self) -> None:
         super().__init__()
-    
+
         self.declare_parameter('predictions_topic', 'predictions')
         self.predictions_topic: str = self.get_parameter('predictions_topic').value
 
@@ -33,8 +33,8 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         self.predictions_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.predictions_topic}', 1)
         self.followed_trajectory_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.followed_trajectory_topic}', 1)
-        
-        self.parameters: dict = {"mu": 1.0489, 
+
+        self.parameters: dict = {"mu": 1.0489,
                                  "C_Sf": 4.718,
                                  "C_Sr": 5.4562,
                                  "lf": 0.15875,
@@ -43,7 +43,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
                                  "m": 3.74,
                                  "I": 0.04712,
                                  "s_min": -0.4189,
-                                 "s_max": 0.4189,                                
+                                 "s_max": 0.4189,
                                  "sv_min": -3.2,
                                  "sv_max": 3.2,
                                  "v_switch": 7.319,
@@ -58,33 +58,37 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.prediction_horizont: float = 1.0
         self.trajectory_points: int = 20
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
-        
+
         self.acceleration_maximum: float = self.parameters["a_max"] / 2.0
 
-        self.velocity_maximum: float = self.parameters["v_max"] * 0.5
+        self.velocity_maximum: float = self.parameters["v_max"] * 0.75
         self.steering_angle_maximum: float = self.parameters["s_max"]
         self.steering_angle_minimum: float = self.parameters["s_min"]
 
-        self.steering_speed_minimum: float = self.parameters["s_min"]
-        self.steering_speed_maximum: float = self.parameters["s_max"]
+        self.steering_speed_minimum: float = self.parameters["s_min"] / 2.0
+        self.steering_speed_maximum: float = self.parameters["s_max"] / 2.0
 
         self.launched: bool = False
 
 
     def _convert_state(self, state: list[float]) -> State:
-        state = np.array(state, dtype=np.float64)
-        return State(state)
+        return State(np.array(state, dtype=np.float64))
 
 
-    def generate_samples(self, state: State):   
-        curvature = self.get_curvature_for_position(state.position)
-        self.get_logger().warn(f'Curvature: {curvature}')
-        
+    def generate_samples(self, state: State):
+        curvature = self.get_curvature_change_for_position(state.position, state.velocity)
+        self.get_logger().warn(f'Curvature: {curvature}')\
+
+        curvature_factor = np.clip(curvature * 10.0, -1.0, 1.0)
+        speed_factor = np.clip(1 - (abs(curvature) * 30.0), 0.0, 1.0)
+        acceleration_factor = np.clip(1 - (abs(curvature) * 20.0), 0.0, 1.0)
+        self.get_logger().warn(f'{curvature_factor=}, {acceleration_factor=}')
+
         acceleration_minimum = 0 if (state.velocity < 5.0) else -self.acceleration_maximum
-        acceleration_maximum = 0 if (state.velocity > self.velocity_maximum) else self.acceleration_maximum
-        
-        steering_speed_minimum = 0 if (state.steering_angle < self.steering_angle_minimum) else self.steering_speed_minimum
-        steering_speed_maximum = 0 if (state.steering_angle > self.steering_angle_maximum) else self.steering_speed_maximum
+        acceleration_maximum = 0 if (state.velocity > (self.velocity_maximum * speed_factor)) else (self.acceleration_maximum * acceleration_factor)
+
+        steering_speed_minimum = 0 if (state.steering_angle < self.steering_angle_minimum) else (self.steering_speed_minimum * (1.0 + curvature_factor))
+        steering_speed_maximum = 0 if (state.steering_angle > self.steering_angle_maximum) else (self.steering_speed_maximum * (1.0 + curvature_factor))
 
         accelerations = np.linspace(acceleration_minimum, acceleration_maximum, self.velocity_samples_count)
         steering_speeds = np.linspace(steering_speed_minimum, steering_speed_maximum, self.steering_saples_count)
@@ -92,7 +96,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
         samples = np.stack(np.meshgrid(steering_speeds, accelerations), axis=2)
         samples = np.reshape(samples, (-1, 2))
         return samples
- 
+
 
     def generate_trajectories(self, state: State, control: np.ndarray) -> list[Trajectory]:
         trajectories: list[Trajectory] = []
@@ -108,9 +112,9 @@ class SamplingAgent(MapEvaluatingAgentBase):
                 poses.append(conversions.array_to_pose(s[:3]))
 
             trajectories.append(Trajectory(poses=poses))
-        
+
         return trajectories
-       
+
 
     def plan(self, state: list[float]) -> list[float]:
         state: State = self._convert_state(state)
@@ -118,7 +122,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
         if not self.launched:
             self.launched = state.velocity > 0
             return [0, self.acceleration_maximum]
-   
+
         control_samples = self.generate_samples(state)
 
         trajectories = self.generate_trajectories(state, control_samples)
@@ -128,7 +132,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.publish_predictions(trajectories)
 
         trajectories_evaluation = super().evaluate_trajectories(trajectories)
-        
+
         assert len(trajectories) == len(trajectories_evaluation), 'Evaluations count doesnt match trajectories count'
 
         trajectories_evaluated = []
@@ -144,7 +148,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         if len(control_samples_filtered) == 0:
             return [0, 0]
-        
+
         trajectories_by_progress = sorted(trajectories_evaluated, key= lambda x: x[1], reverse=True)
         trajectories_by_cost = sorted(trajectories_evaluated, key= lambda x: x[2])
 
@@ -153,7 +157,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
         for i in range(len(trajectories_evaluated)):
             progress_scores[trajectories_by_progress[i][0]] = i
             cost_scores[trajectories_by_cost[i][0]] = i
-    
+
         relative_velocity = state.velocity / self.velocity_maximum
         # variance_factor = 0.0
         # progress_weight = 1.0 + (variance_factor * relative_velocity) - (variance_factor / 2.0)
@@ -165,7 +169,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.publish_followed_trajectory(trajectories_filtered[best])
 
         return control_samples_filtered[best]
-    
+
 
     def publish_predictions(self, trajectories: list[Trajectory]):
         if trajectories is None:
@@ -181,21 +185,21 @@ class SamplingAgent(MapEvaluatingAgentBase):
         points = np.array(points)
         ros_dtype = sensor_msgs.PointField.FLOAT32
         dtype = np.float32
-        itemsize = np.dtype(dtype).itemsize 
-        data = points.astype(dtype).tobytes() 
+        itemsize = np.dtype(dtype).itemsize
+        data = points.astype(dtype).tobytes()
 
-        # The fields specify what the bytes represents. The first 4 bytes 
+        # The fields specify what the bytes represents. The first 4 bytes
         # represents the x-coordinate, the next 4 the y-coordinate, etc.
         fields = [sensor_msgs.PointField(name=n, offset=i*itemsize, datatype=ros_dtype, count=1) for i, n in enumerate('xyzc')]
 
-        # The PointCloud2 message also has a header which specifies which 
-        # coordinate frame it is represented in. 
+        # The PointCloud2 message also has a header which specifies which
+        # coordinate frame it is represented in.
         header = std_msgs.Header()
         header.frame_id = 'map'
 
         msg = sensor_msgs.PointCloud2(
             header=header,
-            height=1, 
+            height=1,
             width=points.shape[0],
             is_dense=False,
             is_bigendian=False,
@@ -205,7 +209,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
             data=data
         )
         self.predictions_publisher.publish(msg)
-    
+
 
     def publish_followed_trajectory(self, trajectory: Trajectory):
         if trajectory is None:
@@ -219,8 +223,8 @@ class SamplingAgent(MapEvaluatingAgentBase):
         points = np.array(points)
         ros_dtype = sensor_msgs.PointField.FLOAT32
         dtype = np.float32
-        itemsize = np.dtype(dtype).itemsize 
-        data = points.astype(dtype).tobytes() 
+        itemsize = np.dtype(dtype).itemsize
+        data = points.astype(dtype).tobytes()
 
         fields = [sensor_msgs.PointField(name=n, offset=i*itemsize, datatype=ros_dtype, count=1) for i, n in enumerate('xyz')]
         header = std_msgs.Header()
@@ -228,7 +232,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         msg = sensor_msgs.PointCloud2(
             header=header,
-            height=1, 
+            height=1,
             width=points.shape[0],
             is_dense=False,
             is_bigendian=False,
@@ -238,9 +242,9 @@ class SamplingAgent(MapEvaluatingAgentBase):
             data=data
         )
         self.followed_trajectory_publisher.publish(msg)
-    
+
 
 def main():
-    rclpy.init()    
+    rclpy.init()
     agent = SamplingAgent()
     rclpy.spin(agent)

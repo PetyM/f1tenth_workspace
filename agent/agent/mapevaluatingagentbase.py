@@ -49,7 +49,7 @@ class MapEvaluatingAgentBase(AgentBase):
                                            durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
                                            history=rclpy.qos.HistoryPolicy.KEEP_LAST,
                                            depth=5)
-        
+
         self.costmap_base: np.ndarray = None
         self.centerline_index_map: np.ndarray = None
         self.curvature_map: np.ndarray = None
@@ -128,7 +128,7 @@ class MapEvaluatingAgentBase(AgentBase):
 
     def update_costmap(self):
         if self.costmap_base is None:
-            return  
+            return
         start = self.get_clock().now()
 
         opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=self.opp_state[0], y=self.opp_state[1], theta=self.opp_state[4]))
@@ -162,7 +162,7 @@ class MapEvaluatingAgentBase(AgentBase):
         costmap: np.ndarray = self.costmap.copy()
 
         values: list[TrajectoryEvaluation] = []
-    
+
         initial_pose_in_grid: np.ndarray = self.map_to_grid_coordinates(trajectories[0].poses[0]).clip([0, 0], [self.map_info.width - 1, self.map_info.height - 1])
 
         initial_centerline_index = self.centerline_index_map[initial_pose_in_grid[0], initial_pose_in_grid[1]]
@@ -170,16 +170,16 @@ class MapEvaluatingAgentBase(AgentBase):
         trajectory: Trajectory
         for trajectory in trajectories:
             evaluation = TrajectoryEvaluation()
-            
+
             pose: Pose2D
             for pose in trajectory.poses:
                 pose_in_grid = self.map_to_grid_coordinates(pose).clip([0, 0], [self.map_info.width - 1, self.map_info.height - 1])
-                
+
                 pose_value = costmap[pose_in_grid[0], pose_in_grid[1]]
 
                 if pose_value >= 100: # collision
                     evaluation.collision = True
- 
+
                 evaluation.cost = evaluation.cost + pose_value
 
             last_trajectory_pose_in_grid: np.ndarray = self.map_to_grid_coordinates(trajectory.poses[-1]).clip([0, 0], [self.map_info.width - 1, self.map_info.height - 1])
@@ -192,11 +192,23 @@ class MapEvaluatingAgentBase(AgentBase):
 
             self.map_log and self.get_logger().info(f'{evaluation.progress=}, {evaluation.cost=}, {evaluation.collision=}')
             values.append(evaluation)
-            
+
         self.map_log and self.get_logger().info(f"MapEvaluatingAgentBase.evaluate_trajectories: Evaluationg took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
         return values
 
 
     def get_curvature_for_position(self, position: np.ndarray) -> float:
         position_in_grid = self.map_to_grid_coordinates(Pose2D(x=position[0], y=position[1]))
-        return self.curvature_map[position_in_grid[0], position_in_grid[1]]
+        centerline_index = self.centerline_index_map[position_in_grid[0], position_in_grid[1]]
+        return self.curvature_map[centerline_index]
+
+
+    def get_curvature_change_for_position(self, position: np.ndarray, velocity:float) -> float:
+        position_in_grid = self.map_to_grid_coordinates(Pose2D(x=position[0], y=position[1]))
+        centerline_index = self.centerline_index_map[position_in_grid[0], position_in_grid[1]]
+
+        lookahead_index_range = int(np.ceil(velocity * 15))
+        max_curvature = self.curvature_map[centerline_index: centerline_index+lookahead_index_range].max()
+        min_curvature = self.curvature_map[centerline_index: centerline_index+lookahead_index_range].min()
+
+        return max_curvature - min_curvature
