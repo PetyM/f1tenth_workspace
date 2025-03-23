@@ -62,6 +62,9 @@ class MapEvaluatingAgentBase(AgentBase):
         self.evaluation_area_size: int = 199
         self.mask_offset: int = int((self.evaluation_area_size - 1) // 2)
 
+        centerline = Raceline.from_centerline_file(pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv"))
+        self.centerline = np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
+
         self.prepare_costmap(map_folder_path, map_name)
 
         if self.opponent_present:
