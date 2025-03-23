@@ -53,7 +53,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
                                  "width": 0.31,
                                  "length": 0.58}
 
-        self.steering_saples_count: int = 7
+        self.steering_saples_count: int = 14
         self.velocity_samples_count: int = 7
         self.prediction_horizont: float = 1.0
         self.trajectory_points: int = 20
