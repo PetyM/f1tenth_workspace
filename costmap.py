@@ -108,24 +108,33 @@ if __name__ == "__main__":
     alpha_map = np.full_like(map, 0, dtype=float)
     alpha_map[track_points] = 1.0
 
+    curvature_map_visual = np.full_like(map, 0.0, dtype=float)
+
     for p in np.argwhere(track_points):
         _, distance_from_raceline, _, centerline_index = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
         costmap[p[0], p[1]] = 100 * distance_from_raceline
         centerline_index_map[p[0], p[1]] = centerline_index
 
+        centerline_point = centerline[centerline_index, :]
+        next_centerline_point = centerline[(centerline_index + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        next_next_centerline_point = centerline[(centerline_index + 2*ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+
+        curvature_map_visual[p[0], p[1]] = calculate_curvature(centerline_point, next_centerline_point, next_next_centerline_point)
+
+
     curvature_map = np.zeros((centerline.shape[0]), dtype=float)
     for p in range(0, centerline.shape[0]):
         centerline_point = centerline[p, :]
-        next_centerline_point = centerline[(p - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
-        previous_centerline_point = centerline[(p + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        next_centerline_point = centerline[(p + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        next_next_centerline_point = centerline[(p + 2*ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
 
-        curvature_map[p] = calculate_curvature(previous_centerline_point, centerline_point, next_centerline_point)
+        curvature_map[p] = calculate_curvature(centerline_point, next_centerline_point, next_next_centerline_point)
 
 
     np.save(f'{MAP_NAME}_costmap', costmap)
     np.save(f'{MAP_NAME}_curvature_map', curvature_map)
     np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
 
-    # plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    # plt.colorbar()
-    # plt.show()
+    plt.imshow(curvature_map_visual, cmap='cool', interpolation='none', alpha=alpha_map)
+    plt.colorbar()
+    plt.show()
