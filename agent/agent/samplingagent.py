@@ -79,7 +79,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
         curvature = self.get_curvature_change_for_position(state.position, state.velocity)
         self.get_logger().warn(f'Curvature: {curvature}')\
 
-        curvature_factor = np.clip(curvature * 10.0, -1.0, 1.0)
+        curvature_factor = np.clip(curvature * 5.0, -1.0, 1.0)
         speed_factor = np.clip(1 - (abs(curvature) * 30.0), 0.0, 1.0)
         acceleration_factor = np.clip(1 - (abs(curvature) * 20.0), 0.0, 1.0)
         self.get_logger().warn(f'{curvature_factor=}, {acceleration_factor=}')
