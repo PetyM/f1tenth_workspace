@@ -71,7 +71,7 @@ class MapEvaluatingAgentBase(AgentBase):
             opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
             opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
             opponent_mask = scipy.ndimage.gaussian_filter(opponent_mask, sigma=20)
-            self.opponent_mask: np.ndarray = 100 * (opponent_mask / opponent_mask.max())
+            self.opponent_mask: np.ndarray = 10 * (opponent_mask / opponent_mask.max())
 
 
     def prepare_costmap(self, map_folder_path: str, map_name: str):
