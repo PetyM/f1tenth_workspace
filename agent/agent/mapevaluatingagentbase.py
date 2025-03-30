@@ -43,7 +43,7 @@ class MapEvaluatingAgentBase(AgentBase):
         self.declare_parameter('map_log', False)
         self.map_log: bool = self.get_parameter('map_log').value
 
-        self.timer_costmap_update: rclpy.timer.Timer = self.create_timer(0.01, self.update_costmap)
+        self.timer_costmap_update: rclpy.timer.Timer = self.create_timer(0.02, self.update_costmap)
 
         qos_profile = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
                                            durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
@@ -146,13 +146,13 @@ class MapEvaluatingAgentBase(AgentBase):
 
         self.costmap = costmap
 
-        costmap = OccupancyGrid()
-        costmap.data = self.costmap.reshape((-1)).tobytes()
-        costmap.header.frame_id = "map"
-        costmap.header.stamp = self.get_clock().now().to_msg()
-        costmap.info = self.map_info
+        msg = OccupancyGrid()
+        msg.data = self.costmap.astype(np.uint8).reshape((-1)).tobytes()
+        msg.header.frame_id = "map"
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.info = self.map_info
 
-        self.costmap_publisher.publish(costmap)
+        self.costmap_publisher.publish(msg)
         self.map_log and self.get_logger().info(f"MapEvaluatingAgentBase.update_costmap: Took {(self.get_clock().now() - start).nanoseconds / 1e6} ms")
 
 
