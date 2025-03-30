@@ -221,4 +221,6 @@ class MapEvaluatingAgentBase(AgentBase):
         max_curvature = lookeahead_curvatures.max()
         min_curvature = lookeahead_curvatures.min()
 
-        return max_curvature - min_curvature
+        rtl = max_curvature - min_curvature
+        ltr = min_curvature - max_curvature
+        return rtl if abs(rtl) > abs(ltr) else ltr
