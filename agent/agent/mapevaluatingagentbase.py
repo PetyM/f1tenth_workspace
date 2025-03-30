@@ -212,7 +212,7 @@ class MapEvaluatingAgentBase(AgentBase):
         position_in_grid = self.map_to_grid_coordinates(Pose2D(x=position[0], y=position[1]))
         centerline_index = self.centerline_index_map[position_in_grid[0], position_in_grid[1]]
 
-        lookahead_index_range = max(int(np.ceil(velocity * 15)), 1)
+        lookahead_index_range = max(int(np.ceil(velocity**2)), 1)
         lookahead_index = (centerline_index + lookahead_index_range) % self.curvature_map.shape[0]
         lookeahead_curvatures = self.curvature_map[centerline_index : lookahead_index]
         if lookahead_index < centerline_index:
