@@ -197,6 +197,11 @@ class MapEvaluatingAgentBase(AgentBase):
         return values
 
 
+    def is_collision(self, position: np.ndarray) -> float:
+        position_in_grid = self.map_to_grid_coordinates(Pose2D(x=position[0], y=position[1]))
+        centerline_index = self.centerline_index_map[position_in_grid[0], position_in_grid[1]]
+        return centerline_index == -1
+
     def get_curvature_for_position(self, position: np.ndarray) -> float:
         position_in_grid = self.map_to_grid_coordinates(Pose2D(x=position[0], y=position[1]))
         centerline_index = self.centerline_index_map[position_in_grid[0], position_in_grid[1]]

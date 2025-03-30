@@ -119,6 +119,9 @@ class SamplingAgent(MapEvaluatingAgentBase):
     def plan(self, state: list[float]) -> list[float]:
         state: State = self._convert_state(state)
 
+        if self.is_collision(state.position):
+            return [0, 0]
+
         if not self.launched:
             self.launched = state.velocity > 0
             return [0, self.acceleration_maximum]

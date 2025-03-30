@@ -103,7 +103,7 @@ if __name__ == "__main__":
     track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
 
     costmap = np.full_like(map, 100.0, dtype=float)
-    centerline_index_map = np.full_like(map, 0, dtype=int)
+    centerline_index_map = np.full_like(map, -1, dtype=int)
 
     alpha_map = np.full_like(map, 0, dtype=float)
     alpha_map[track_points] = 1.0
