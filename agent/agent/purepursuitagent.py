@@ -6,7 +6,7 @@ from typing import Tuple
 import gymnasium as gym
 import numpy as np
 from numba import njit
-from agent.agent import AgentBase
+from agent.agentbase import AgentBase
 
 import pathlib
 from f1tenth_gym.envs.track import Raceline
