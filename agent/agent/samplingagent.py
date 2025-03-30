@@ -77,13 +77,13 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
     def generate_samples(self, state: State):
         curvature = self.get_curvature_change_for_position(state.position, state.velocity)
-        self.get_logger().warn(f'Curvature: {curvature}')\
+        self.get_logger().debug(f'Curvature: {curvature}')\
 
         curvature_factor = np.clip(curvature * 5.0, -1.0, 1.0)
         speed_factor = np.clip(1.0 - (abs(curvature) * 20.0), 0.0, 1.0)
         acceleration_factor = np.clip(1.0 - (abs(curvature) * 20.0), 0.0, 1.0)
         deacceleration_factor = np.clip((abs(curvature) * 2.5), 0.0, 1.0)
-        self.get_logger().warn(f'{curvature_factor=}, {acceleration_factor=}')
+        self.get_logger().debug(f'{curvature_factor=}, {acceleration_factor=}')
 
         acceleration_minimum = 0 if (state.velocity < 5.0) else -self.acceleration_maximum
         acceleration_maximum = (-self.acceleration_maximum * deacceleration_factor) if (state.velocity > (self.velocity_maximum * speed_factor)) else (self.acceleration_maximum * acceleration_factor)
