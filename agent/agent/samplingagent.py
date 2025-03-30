@@ -80,12 +80,13 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.get_logger().warn(f'Curvature: {curvature}')\
 
         curvature_factor = np.clip(curvature * 5.0, -1.0, 1.0)
-        speed_factor = np.clip(1 - (abs(curvature) * 30.0), 0.0, 1.0)
-        acceleration_factor = np.clip(1 - (abs(curvature) * 20.0), 0.0, 1.0)
+        speed_factor = np.clip(1.0 - (abs(curvature) * 20.0), 0.0, 1.0)
+        acceleration_factor = np.clip(1.0 - (abs(curvature) * 20.0), 0.0, 1.0)
+        deacceleration_factor = np.clip((abs(curvature) * 2.5), 0.0, 1.0)
         self.get_logger().warn(f'{curvature_factor=}, {acceleration_factor=}')
 
         acceleration_minimum = 0 if (state.velocity < 5.0) else -self.acceleration_maximum
-        acceleration_maximum = 0 if (state.velocity > (self.velocity_maximum * speed_factor)) else (self.acceleration_maximum * acceleration_factor)
+        acceleration_maximum = (-self.acceleration_maximum * deacceleration_factor) if (state.velocity > (self.velocity_maximum * speed_factor)) else (self.acceleration_maximum * acceleration_factor)
 
         steering_speed_minimum = 0 if (state.steering_angle < self.steering_angle_minimum) else (self.steering_speed_minimum * (1.0 + curvature_factor))
         steering_speed_maximum = 0 if (state.steering_angle > self.steering_angle_maximum) else (self.steering_speed_maximum * (1.0 + curvature_factor))
