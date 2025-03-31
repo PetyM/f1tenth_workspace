@@ -22,8 +22,8 @@ import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 
 class SamplingAgent(MapEvaluatingAgentBase):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, node_name: str= 'samplingagent') -> None:
+        super().__init__(node_name)
 
         self.declare_parameter('predictions_topic', 'predictions')
         self.predictions_topic: str = self.get_parameter('predictions_topic').value

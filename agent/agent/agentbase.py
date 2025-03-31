@@ -13,10 +13,28 @@ from ackermann_msgs.msg import AckermannDriveStamped
 
 from std_msgs.msg import Float64MultiArray
 
+def time_to_string(time: rclpy.time.Time) -> str:
+    # Get the total time in nanoseconds
+    total_ns = time.nanoseconds
+
+    hours = total_ns // 3_600_000_000_000
+    remaining_ns = total_ns % 3_600_000_000_000
+
+    # Calculate minutes, seconds, and milliseconds
+    minutes = remaining_ns // 60_000_000_000  # 1 minute = 60 * 10^9 nanoseconds
+    remaining_ns = remaining_ns % 60_000_000_000
+
+    seconds = remaining_ns // 1_000_000_000  # 1 second = 10^9 nanoseconds
+    remaining_ns = remaining_ns % 1_000_000_000
+
+    milliseconds = remaining_ns // 1_000_000  # 1 millisecond = 10^6 nanoseconds
+
+    # Return formatted string
+    return f"{minutes:02d}:{seconds:02d}::{milliseconds:03d}"
 
 class AgentBase(rclpy.node.Node):
-    def __init__(self):
-        super().__init__('agent')
+    def __init__(self, node_name: str= 'agent'):
+        super().__init__(node_name)
 
         self.declare_parameter('agent_namespace', 'ego_racecar')
         self.agent_namespace: str = self.get_parameter('agent_namespace').value
@@ -71,4 +89,4 @@ class AgentBase(rclpy.node.Node):
         msg.drive.steering_angle_velocity = float(action[0])
         self.drive_publiser.publish(msg)
 
-        self.get_logger().info(f"AgentBase.update: State: v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6:.2f} ms")
+        self.get_logger().info(f"AgentBase.update: State: v={self.ego_state[3]:.2f}, d={self.ego_state[2]:.2f}, action: v={action[1]:.2f}, d={action[0]:.2f}, took {(self.get_clock().now() - start).nanoseconds / 1e6:.2f} ms ({time_to_string(self.get_clock().now())})")

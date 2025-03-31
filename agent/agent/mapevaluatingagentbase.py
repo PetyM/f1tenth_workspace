@@ -28,8 +28,8 @@ from agent.agentbase import AgentBase
 from agent.trajectory import Trajectory, TrajectoryEvaluation
 
 class MapEvaluatingAgentBase(AgentBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, node_name: str= 'mapagent'):
+        super().__init__(node_name)
 
         self.declare_parameter('costmap_topic', 'costmap')
         costmap_topic = self.get_parameter('costmap_topic').value
