@@ -123,6 +123,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
         state: State = self._convert_state(state)
 
         if self.is_collision(state.position):
+            self.timer_update_control.destroy()
             return [0, 0]
 
         if not self.launched:
