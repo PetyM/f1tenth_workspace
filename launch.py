@@ -66,7 +66,7 @@ def generate_launch_description():
         parameters=[{'opponent_present': opponent},
                     {'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'}],
-        arguments=["--ros-args", "--log-level", "warn"]
+        arguments=["--ros-args", "--log-level", "info"]
     )
 
     ld.add_action(rviz_node)
