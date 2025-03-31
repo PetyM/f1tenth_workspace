@@ -80,9 +80,9 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.get_logger().info(f'Curvature: {curvature}')\
 
         curvature_factor = np.clip(curvature * 5.0, -1.0, 1.0)
-        speed_factor = np.clip(1.0 - (abs(curvature) * 20.0), 0.0, 1.0)
-        acceleration_factor = np.clip(1.0 - (abs(curvature) * 20.0), 0.0, 1.0)
-        deacceleration_factor = np.clip((abs(curvature) * 2.5), 0.0, 1.0)
+        speed_factor = np.clip(1.0 - (abs(curvature) * 30.0), 0.0, 1.0)
+        acceleration_factor = np.clip(1.0 - (abs(curvature) * 30.0), 0.0, 1.0)
+        deacceleration_factor = np.clip((abs(curvature) * 3.5), 0.0, 1.0)
         self.get_logger().debug(f'{curvature_factor=}, {acceleration_factor=}')
 
         acceleration_minimum = 0 if (state.velocity < 5.0) else -self.acceleration_maximum
@@ -124,7 +124,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         if self.is_collision(state.position):
             self.timer_update_control.destroy()
-            return [0, 0]
+            return [0, -self.acceleration_maximum]
 
         if not self.launched:
             self.launched = state.velocity > 0

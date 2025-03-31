@@ -116,19 +116,19 @@ if __name__ == "__main__":
         centerline_index_map[p[0], p[1]] = centerline_index
 
         centerline_point = centerline[centerline_index, :]
-        next_centerline_point = centerline[(centerline_index + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
-        next_next_centerline_point = centerline[(centerline_index + 2*ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        next_centerline_point = centerline[(centerline_index - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        next_next_centerline_point = centerline[(centerline_index + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
 
-        curvature_map_visual[p[0], p[1]] = calculate_curvature(centerline_point, next_centerline_point, next_next_centerline_point)
+        curvature_map_visual[p[0], p[1]] = calculate_curvature(next_centerline_point, centerline_point, next_next_centerline_point)
 
 
     curvature_map = np.zeros((centerline.shape[0]), dtype=float)
     for p in range(0, centerline.shape[0]):
         centerline_point = centerline[p, :]
-        next_centerline_point = centerline[(p + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
-        next_next_centerline_point = centerline[(p + 2*ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        next_centerline_point = centerline[(p - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
+        next_next_centerline_point = centerline[(p + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
 
-        curvature_map[p] = calculate_curvature(centerline_point, next_centerline_point, next_next_centerline_point)
+        curvature_map[p] = calculate_curvature(next_centerline_point, centerline_point, next_next_centerline_point)
 
 
     np.save(f'{MAP_NAME}_costmap', costmap)
