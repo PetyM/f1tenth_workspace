@@ -53,7 +53,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
                                  "width": 0.31,
                                  "length": 0.58}
 
-        self.steering_saples_count: int = 10
+        self.steering_saples_count: int = 12
         self.velocity_samples_count: int = 7
         self.prediction_horizont: float = 1.0
         self.trajectory_points: int = 20
@@ -65,8 +65,8 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.steering_angle_maximum: float = self.parameters["s_max"]
         self.steering_angle_minimum: float = self.parameters["s_min"]
 
-        self.steering_speed_minimum: float = self.parameters["s_min"] / 2.0
-        self.steering_speed_maximum: float = self.parameters["s_max"] / 2.0
+        self.steering_speed_minimum: float = self.parameters["s_min"] * 0.7
+        self.steering_speed_maximum: float = self.parameters["s_max"] * 0.7
 
         self.launched: bool = False
 
@@ -79,17 +79,15 @@ class SamplingAgent(MapEvaluatingAgentBase):
         curvature = self.get_curvature_change_for_position(state.position, state.velocity)
         self.get_logger().info(f'Curvature: {curvature}')\
 
-        curvature_factor = np.clip(curvature * 5.0, -1.0, 1.0)
         speed_factor = np.clip(1.0 - (abs(curvature) * 30.0), 0.0, 1.0)
         acceleration_factor = np.clip(1.0 - (abs(curvature) * 30.0), 0.0, 1.0)
         deacceleration_factor = np.clip((abs(curvature) * 3.5), 0.0, 1.0)
-        self.get_logger().debug(f'{curvature_factor=}, {acceleration_factor=}')
 
         acceleration_minimum = 0 if (state.velocity < 5.0) else -self.acceleration_maximum
         acceleration_maximum = (-self.acceleration_maximum * deacceleration_factor) if (state.velocity > (self.velocity_maximum * speed_factor)) else (self.acceleration_maximum * acceleration_factor)
 
-        steering_speed_minimum = 0 if (state.steering_angle < self.steering_angle_minimum) else (self.steering_speed_minimum * (1.0 + curvature_factor))
-        steering_speed_maximum = 0 if (state.steering_angle > self.steering_angle_maximum) else (self.steering_speed_maximum * (1.0 + curvature_factor))
+        steering_speed_minimum = 0 if (state.steering_angle < self.steering_angle_minimum) else self.steering_speed_minimum
+        steering_speed_maximum = 0 if (state.steering_angle > self.steering_angle_maximum) else self.steering_speed_maximum
 
         self.get_logger().info(f'{acceleration_minimum=:.3f}, {acceleration_maximum=:.3f}, {steering_speed_minimum=:.3f}, {steering_speed_maximum=:.3f}')
 
