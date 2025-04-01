@@ -90,7 +90,7 @@ def calculate_curvature(p1, p2, p3):
 if __name__ == "__main__":
     MAP_NAME: str = "Spielberg"
     MAP_FOLDER_PATH: str = pathlib.Path(__file__).parent.resolve() / "f1tenth_racetracks" / MAP_NAME
-    ANGLE_DIFFERENCE_STEP: int = 100
+    ANGLE_DIFFERENCE_STEP: int = 200
 
     map_info = load_map_info(MAP_FOLDER_PATH, MAP_NAME)
     map = load_map(MAP_FOLDER_PATH, MAP_NAME)
