@@ -124,7 +124,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         if self.is_collision(state.position):
             self.timer_update_control.destroy()
-            return [0, -self.acceleration_maximum]
+            return [0, 0]
 
         if not self.launched:
             self.launched = state.velocity > 0
