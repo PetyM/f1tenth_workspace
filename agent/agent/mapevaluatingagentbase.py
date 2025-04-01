@@ -52,7 +52,7 @@ class MapEvaluatingAgentBase(AgentBase):
 
         self.costmap_base: np.ndarray = None
         self.centerline_index_map: np.ndarray = None
-        self.curvature_map: np.ndarray = None
+        self.curvatures: np.ndarray = None
         self.map_info: MapMetaData = MapMetaData()
 
         self.costmap_publisher: rclpy.publisher.Publisher = self.create_publisher(OccupancyGrid, f'{self.agent_namespace}/{costmap_topic}', qos_profile)
@@ -102,9 +102,9 @@ class MapEvaluatingAgentBase(AgentBase):
         else:
             self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Centerline index map NOT found.')
 
-        curvature_map_path = pathlib.Path(f'{map_name}_curvature_map.npy')
-        if curvature_map_path.exists():
-            self.curvature_map = np.load(curvature_map_path)
+        curvatures_path = pathlib.Path(f'{map_name}_curvatures.npy')
+        if curvatures_path.exists():
+            self.curvatures = np.load(curvatures_path)
         else:
             self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Curvature map NOT found.')
 
@@ -205,7 +205,7 @@ class MapEvaluatingAgentBase(AgentBase):
     def get_curvature_for_position(self, position: np.ndarray) -> float:
         position_in_grid = self.map_to_grid_coordinates(Pose2D(x=position[0], y=position[1]))
         centerline_index = self.centerline_index_map[position_in_grid[0], position_in_grid[1]]
-        return self.curvature_map[centerline_index]
+        return self.curvatures[centerline_index]
 
 
     def get_curvature_change_for_position(self, position: np.ndarray, velocity:float) -> float:
@@ -213,11 +213,11 @@ class MapEvaluatingAgentBase(AgentBase):
         centerline_index = self.centerline_index_map[position_in_grid[0], position_in_grid[1]]
 
         lookahead_index_range = max(int(np.ceil(velocity**2)), 1)
-        lookahead_index = (centerline_index + lookahead_index_range) % self.curvature_map.shape[0]
-        lookeahead_curvatures = self.curvature_map[centerline_index : lookahead_index]
+        lookahead_index = (centerline_index + lookahead_index_range) % self.curvatures.shape[0]
+        lookeahead_curvatures = self.curvatures[centerline_index : lookahead_index]
         if lookahead_index < centerline_index:
             self.get_logger().error("Bang")
-            lookeahead_curvatures = np.hstack((self.curvature_map[centerline_index:], self.curvature_map[:lookahead_index]))
+            lookeahead_curvatures = np.hstack((self.curvatures[centerline_index:], self.curvatures[:lookahead_index]))
         max_curvature = lookeahead_curvatures.max()
         min_curvature = lookeahead_curvatures.min()
 
