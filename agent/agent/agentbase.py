@@ -11,7 +11,8 @@ import rclpy.qos
 
 from ackermann_msgs.msg import AckermannDriveStamped
 
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, Bool
+from std_srvs.srv import Empty
 
 def time_to_string(time: rclpy.time.Time) -> str:
     # Get the total time in nanoseconds
@@ -76,6 +77,12 @@ class AgentBase(rclpy.node.Node):
 
     def opp_state_cb(self, msg: Float64MultiArray):
         self.opp_state = msg.data
+
+
+    def ready(self):
+        client = self.create_client(Empty, f'{self.agent_namespace}/ready')
+        client.wait_for_service()
+        client.call_async(Empty.Request())
 
 
     def update_control(self):

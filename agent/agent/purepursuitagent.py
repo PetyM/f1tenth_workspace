@@ -211,6 +211,7 @@ class PurePursuitAgent(AgentBase):
 
         self.lookahead_distance = 2.0
         self.vgain = 6.0 * self.velocity_gain
+        self.ready()
 
 
     def _get_current_waypoint(

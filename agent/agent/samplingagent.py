@@ -69,7 +69,8 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.steering_speed_maximum: float = self.parameters["s_max"] * 0.7
 
         self.launched: bool = False
-
+        self.ready()
+        
 
     def _convert_state(self, state: list[float]) -> State:
         return State(np.array(state, dtype=np.float64))
