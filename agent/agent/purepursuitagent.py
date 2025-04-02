@@ -210,7 +210,7 @@ class PurePursuitAgent(AgentBase):
         self.max_reacquire = 20.0
 
         self.lookahead_distance = 2.0
-        self.vgain = 4.0 * self.velocity_gain
+        self.vgain = 6.0 * self.velocity_gain
 
 
     def _get_current_waypoint(
@@ -273,7 +273,7 @@ class PurePursuitAgent(AgentBase):
             speed,
             pose[3],
             self.params["a_max"],
-            self.params["v_max"],
+            self.params["v_max"] * self.velocity_gain,
             self.params["v_min"],
         )
 

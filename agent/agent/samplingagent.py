@@ -61,7 +61,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         self.acceleration_maximum: float = self.parameters["a_max"] * 0.5
 
-        self.velocity_maximum: float = self.parameters["v_max"] * 0.75
+        self.velocity_maximum: float = self.parameters["v_max"] * 0.75 * self.velocity_gain
         self.steering_angle_maximum: float = self.parameters["s_max"]
         self.steering_angle_minimum: float = self.parameters["s_min"]
 
