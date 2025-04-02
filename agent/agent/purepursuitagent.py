@@ -10,7 +10,7 @@ from agent.agentbase import AgentBase
 
 import pathlib
 from f1tenth_gym.envs.track import Raceline
-
+from f1tenth_gym.envs.dynamic_models import pid_steer, pid_accl
 
 @njit(fastmath=False, cache=True)
 def nearest_point_on_trajectory(point, trajectory):
@@ -173,8 +173,8 @@ def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, whe
 
 
 class PurePursuitAgent(AgentBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, node_name: str= 'pursuitagent'):
+        super().__init__(node_name, 0.001)
 
         self.declare_parameter('map_name', '')
         self.map_name: str = self.get_parameter('map_name').value
@@ -182,7 +182,7 @@ class PurePursuitAgent(AgentBase):
         self.declare_parameter('map_folder_path', '')
         self.map_folder_path: str = self.get_parameter('map_folder_path').value
 
-        params = {"mu": 1.0489, 
+        self.params = {"mu": 1.0489, 
                   "C_Sf": 4.718,
                   "C_Sr": 5.4562,
                   "lf": 0.15875,
@@ -201,7 +201,7 @@ class PurePursuitAgent(AgentBase):
                   "width": 0.31,
                   "length": 0.58}
 
-        self.wheelbase = params["lr"] + params["lf"]
+        self.wheelbase = self.params["lr"] + self.params["lf"]
 
         centerline_file = pathlib.Path(f"{self.map_folder_path}/{self.map_name}_centerline.csv")
 
@@ -269,7 +269,21 @@ class PurePursuitAgent(AgentBase):
         speed, steering_angle = get_actuation(pose_theta, lookahead_point, position, self.lookahead_distance, self.wheelbase)
         speed = self.vgain * speed
 
-        return [steering_angle, speed]
+        accl = pid_accl(
+            speed,
+            pose[3],
+            self.params["a_max"],
+            self.params["v_max"],
+            self.params["v_min"],
+        )
+
+        sv = pid_steer(
+            steering_angle,
+            pose[2],
+            self.params["sv_max"],
+        )
+
+        return [sv, accl]
     
 
 

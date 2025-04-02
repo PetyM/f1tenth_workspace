@@ -33,7 +33,7 @@ def time_to_string(time: rclpy.time.Time) -> str:
     return f"{minutes:02d}:{seconds:02d}::{milliseconds:03d}"
 
 class AgentBase(rclpy.node.Node):
-    def __init__(self, node_name: str= 'agent'):
+    def __init__(self, node_name: str= 'agent', update_period: float = 0.03):
         super().__init__(node_name)
 
         self.declare_parameter('agent_namespace', 'ego_racecar')
@@ -60,7 +60,7 @@ class AgentBase(rclpy.node.Node):
         if self.opponent_present:
             self.opp_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{self.opponent_namespace}/{self.state_topic}', self.opp_state_cb, 10)
         
-        self.timer_update_control: rclpy.timer.Timer = self.create_timer(0.03, self.update_control)
+        self.timer_update_control: rclpy.timer.Timer = self.create_timer(update_period, self.update_control)
 
         self.ego_state: list[float] = [0,0,0,0,0,0,0]
         self.opp_state: list[float] = [0,0,0,0,0,0,0]
