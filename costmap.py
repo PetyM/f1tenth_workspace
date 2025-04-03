@@ -90,40 +90,77 @@ def calculate_curvature(p1, p2, p3):
 if __name__ == "__main__":
     MAP_NAME: str = "Spielberg"
     MAP_FOLDER_PATH: str = pathlib.Path(__file__).parent.resolve() / "f1tenth_racetracks" / MAP_NAME
-    ANGLE_DIFFERENCE_STEP: int = 200
+    ANGLE_DIFFERENCE_STEP: int = 100
 
     map_info = load_map_info(MAP_FOLDER_PATH, MAP_NAME)
     map = load_map(MAP_FOLDER_PATH, MAP_NAME)
     centerline = load_centerline(MAP_FOLDER_PATH, MAP_NAME)
     raceline = load_raceline(MAP_FOLDER_PATH, MAP_NAME)
 
-    dilated_map = dilate_map(map, 6)
-
     map_origin_in_grid = map_to_grid_coordinates(map_info, Vector3())
-    track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
-
-    costmap = np.full_like(map, 100.0, dtype=float)
-    centerline_index_map = np.full_like(map, -1, dtype=int)
-
-    alpha_map = np.full_like(map, 0, dtype=float)
-    alpha_map[track_points] = 1.0
-
-
-    for p in np.argwhere(track_points):
-        _, distance_from_raceline, _, centerline_index = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
-        costmap[p[0], p[1]] = 100 * distance_from_raceline
-        centerline_index_map[p[0], p[1]] = centerline_index
+    track_points = skimage.segmentation.flood(map, (map_origin_in_grid[0], map_origin_in_grid[1]))
+    # centerline_index_map = np.full_like(map, -1, dtype=int)
+    # for p in np.argwhere(track_points):
+    #     _, _, _, centerline_index = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
+    #     centerline_index_map[p[0], p[1]] = centerline_index
+    # np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
 
 
-    curvatures = np.zeros((centerline.shape[0]), dtype=float)
+    # costmap = np.full_like(map, 100.0, dtype=float)
+    # dilated_map = dilate_map(map, 6)
+    # dilated_track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
+    # for p in np.argwhere(dilated_track_points):
+    #     _, distance_from_raceline, _, _ = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
+    #     costmap[p[0], p[1]] = 100 * distance_from_raceline
+    # np.save(f'{MAP_NAME}_costmap', costmap)
+
+    centerline = np.flip(centerline, -1)
+
+    curvatures = np.zeros((centerline.shape[0]), dtype=np.float64)
     for p in range(0, centerline.shape[0]):
         centerline_point = centerline[p, :]
         next_centerline_point = centerline[(p - ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
         next_next_centerline_point = centerline[(p + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
 
         curvatures[p] = calculate_curvature(next_centerline_point, centerline_point, next_next_centerline_point)
-
-
-    np.save(f'{MAP_NAME}_costmap', costmap)
     np.save(f'{MAP_NAME}_curvatures', curvatures)
-    np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
+    
+    curvature_gradient = np.gradient(curvatures)
+
+    abs_curvatures = np.abs(curvatures)
+    abs_curvature_gradient = np.gradient(abs_curvatures)
+    np.save(f'{MAP_NAME}_curvature_gradient', abs_curvature_gradient)
+
+    alpha_map = np.full_like(map, 0, dtype=float)
+    alpha_map[track_points] = 1.0
+
+    curvature_map = np.full_like(map, 0.0, dtype=float)
+    curvature_gradient_map = np.full_like(map, 0.0, dtype=float)
+    abs_curvature_map = np.full_like(map, 0.0, dtype=float)
+    abs_curvature_gradient_map = np.full_like(map, 0.0, dtype=float)
+
+    centerline_index_map = np.load(f'/home/michal/f1tenth_workspace/{MAP_NAME}_centerline_index_map.npy')
+    for p in np.argwhere(track_points):
+        centerline_index = centerline_index_map[p[0], p[1]]
+        curvature_map[p[0], p[1]] = curvatures[centerline_index]
+        curvature_gradient_map[p[0], p[1]] = curvature_gradient[centerline_index]
+        abs_curvature_map[p[0], p[1]] = abs_curvatures[centerline_index]
+        abs_curvature_gradient_map[p[0], p[1]] = curvature_gradient[centerline_index]
+
+    plt.subplot(2, 2, 1)
+    plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    plt.title('Curvature')
+    plt.colorbar()
+    plt.subplot(2, 2, 2)
+    plt.imshow(curvature_gradient_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    plt.title('Curvature gradient')
+    plt.colorbar()
+    plt.subplot(2, 2, 3)
+    plt.imshow(abs_curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    plt.title('ABS Curvature')
+    plt.colorbar()
+    plt.subplot(2, 2, 4)
+    plt.imshow(abs_curvature_gradient_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    plt.title('ABS Curvature gradient')
+    plt.colorbar()
+    plt.show()
