@@ -83,6 +83,7 @@ class AgentBase(rclpy.node.Node):
         client = self.create_client(Empty, f'{self.agent_namespace}/ready')
         client.wait_for_service()
         client.call_async(Empty.Request())
+        self.get_logger().info('Ready')
 
 
     def update_control(self):

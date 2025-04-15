@@ -9,7 +9,7 @@ def generate_launch_description():
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
     map = 'Spielberg'
-    opponent = False
+    opponent = True
 
     bridge_node = Node(
         package='f1tenth_gym_ros',
@@ -65,8 +65,9 @@ def generate_launch_description():
         name='ego_agent',
         parameters=[{'opponent_present': opponent},
                     {'map_name': map},
-                    {'map_folder_path': f'{maps_folder}/{map}'}],
-        arguments=["--ros-args", "--log-level", "info"]
+                    {'map_folder_path': f'{maps_folder}/{map}'},
+                    {'velocity_gain': 0.6}],
+        arguments=["--ros-args", "--log-level", "warn"]
     )
 
     ld.add_action(rviz_node)
@@ -93,7 +94,7 @@ def generate_launch_description():
             parameters=[{'map_name': map},
                         {'map_folder_path': f'{maps_folder}/{map}'},
                         {'agent_namespace': 'opp_racecar'},
-                        {'velocity_gain': 0.5}],
+                        {'velocity_gain': 1.0}],
             arguments=["--ros-args", "--log-level", "warn"]
         )
         

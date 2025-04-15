@@ -16,6 +16,8 @@ from state import nearest_point_on_trajectory
 
 from geometry_msgs.msg import Pose2D
 
+from model import vehicle_dynamics, integrate_state
+from f1tenth_gym.envs.dynamic_models import vehicle_dynamics_st
 
 import pathlib
 import numpy as np
@@ -23,6 +25,7 @@ import scipy.ndimage
 import skimage.segmentation
 import imageio.v3 as iio
 import yaml
+import cv2
 
 from agent.agentbase import AgentBase
 from agent.trajectory import Trajectory, TrajectoryEvaluation
@@ -43,7 +46,7 @@ class MapEvaluatingAgentBase(AgentBase):
         self.declare_parameter('map_log', False)
         self.map_log: bool = self.get_parameter('map_log').value
 
-        self.timer_costmap_update: rclpy.timer.Timer = self.create_timer(0.02, self.update_costmap)
+        self.timer_costmap_update: rclpy.timer.Timer = self.create_timer(0.03, self.update_costmap)
 
         qos_profile = rclpy.qos.QoSProfile(reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
                                            durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
@@ -57,21 +60,37 @@ class MapEvaluatingAgentBase(AgentBase):
 
         self.costmap_publisher: rclpy.publisher.Publisher = self.create_publisher(OccupancyGrid, f'{self.agent_namespace}/{costmap_topic}', qos_profile)
         self.costmap: np.ndarray = None
-        self.car_size: float = 0.4
-
-        self.evaluation_area_size: int = 199
-        self.mask_offset: int = int((self.evaluation_area_size - 1) // 2)
 
         centerline = Raceline.from_centerline_file(pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv"))
         self.centerline = np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
 
+        self.parameters: dict = {"mu": 1.0489,
+                        "C_Sf": 4.718,
+                        "C_Sr": 5.4562,
+                        "lf": 0.15875,
+                        "lr": 0.17145,
+                        "h": 0.074,
+                        "m": 3.74,
+                        "I": 0.04712,
+                        "s_min": -0.4189,
+                        "s_max": 0.4189,
+                        "sv_min": -3.2,
+                        "sv_max": 3.2,
+                        "v_switch": 7.319,
+                        "a_max": 9.51,
+                        "v_min": -5.0,
+                        "v_max": 20.0,
+                        "width": 0.31,
+                        "length": 0.58}
+        
         self.prepare_costmap(map_folder_path, map_name)
 
-        if self.opponent_present:
-            opponent_mask = np.zeros((self.evaluation_area_size, self.evaluation_area_size))
-            opponent_mask[self.mask_offset - 4 : self.mask_offset + 4, self.mask_offset - 4 : self.mask_offset + 4] = 1
-            opponent_mask = scipy.ndimage.gaussian_filter(opponent_mask, sigma=20)
-            self.opponent_mask: np.ndarray = 10 * (opponent_mask / opponent_mask.max())
+        self.opp_prediction_horizont: float = 1.0
+        self.opp_trajectory_points: int = 10
+        self.opp_trajectory_time_difference: float = self.opp_prediction_horizont / self.opp_trajectory_points
+
+        self.size: int = 12
+
 
 
     def prepare_costmap(self, map_folder_path: str, map_name: str):
@@ -131,18 +150,21 @@ class MapEvaluatingAgentBase(AgentBase):
             return
         start = self.get_clock().now()
 
-        opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=self.opp_state[0], y=self.opp_state[1], theta=self.opp_state[4]))
 
-        costmap = np.zeros_like(self.costmap_base)
+        costmap = np.copy(self.costmap_base)
 
         if self.opponent_present:
-            opponent_costmap = np.zeros_like(self.costmap_base)
-            opponent_costmap[opponent_grid_position[0] - self.mask_offset - 1: opponent_grid_position[0] + self.mask_offset, opponent_grid_position[1] - self.mask_offset -1 : opponent_grid_position[1] + self.mask_offset] = self.opponent_mask
+            s = self.opp_state
+            opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=s[0], y=s[1], theta=s[4]))
+            for i in range(self.opp_trajectory_points - 1):
+                s = integrate_state(vehicle_dynamics_st, s, [0, 0], self.opp_trajectory_time_difference, self.parameters)
 
-            costmap = np.add(costmap, opponent_costmap)
+                last_opponent_grid_position = opponent_grid_position
+                opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=s[0], y=s[1], theta=s[4]))
+                # costmap[opponent_grid_position[0] - 4: opponent_grid_position[0] + 4: , opponent_grid_position[1] - 4 : opponent_grid_position[1] + 4] = 100
 
+                cv2.line(costmap, np.flip(last_opponent_grid_position, 0), np.flip(opponent_grid_position, 0), color=90, thickness=self.size)
 
-        costmap = np.add(costmap, self.costmap_base)
 
         self.costmap = costmap
 
@@ -216,7 +238,6 @@ class MapEvaluatingAgentBase(AgentBase):
         lookahead_index = (centerline_index + lookahead_index_range) % self.curvatures.shape[0]
         lookeahead_curvatures = self.curvatures[centerline_index : lookahead_index]
         if lookahead_index < centerline_index:
-            self.get_logger().error("Bang")
             lookeahead_curvatures = np.hstack((self.curvatures[centerline_index:], self.curvatures[:lookahead_index]))
         max_curvature = lookeahead_curvatures.max()
         min_curvature = lookeahead_curvatures.min()

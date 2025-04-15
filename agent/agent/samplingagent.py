@@ -53,8 +53,8 @@ class SamplingAgent(MapEvaluatingAgentBase):
                                  "width": 0.31,
                                  "length": 0.58}
 
-        self.steering_saples_count: int = 12
-        self.velocity_samples_count: int = 7
+        self.steering_saples_count: int = 15
+        self.velocity_samples_count: int = 6
         self.prediction_horizont: float = 1.0
         self.trajectory_points: int = 20
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
@@ -65,8 +65,8 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.steering_angle_maximum: float = self.parameters["s_max"]
         self.steering_angle_minimum: float = self.parameters["s_min"]
 
-        self.steering_speed_minimum: float = self.parameters["s_min"] * 0.7
-        self.steering_speed_maximum: float = self.parameters["s_max"] * 0.7
+        self.steering_speed_minimum: float = self.parameters["s_min"] * 0.9
+        self.steering_speed_maximum: float = self.parameters["s_max"] * 0.9
 
         self.launched: bool = False
         self.ready()

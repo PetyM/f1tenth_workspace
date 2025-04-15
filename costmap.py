@@ -99,20 +99,20 @@ if __name__ == "__main__":
 
     map_origin_in_grid = map_to_grid_coordinates(map_info, Vector3())
     track_points = skimage.segmentation.flood(map, (map_origin_in_grid[0], map_origin_in_grid[1]))
-    # centerline_index_map = np.full_like(map, -1, dtype=int)
-    # for p in np.argwhere(track_points):
-    #     _, _, _, centerline_index = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
-    #     centerline_index_map[p[0], p[1]] = centerline_index
-    # np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
+    centerline_index_map = np.full_like(map, -1, dtype=int)
+    for p in np.argwhere(track_points):
+        _, _, _, centerline_index = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
+        centerline_index_map[p[0], p[1]] = centerline_index
+    np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
 
 
-    # costmap = np.full_like(map, 100.0, dtype=float)
-    # dilated_map = dilate_map(map, 6)
-    # dilated_track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
-    # for p in np.argwhere(dilated_track_points):
-    #     _, distance_from_raceline, _, _ = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
-    #     costmap[p[0], p[1]] = 100 * distance_from_raceline
-    # np.save(f'{MAP_NAME}_costmap', costmap)
+    costmap = np.full_like(map, 100.0, dtype=float)
+    dilated_map = dilate_map(map, 6)
+    dilated_track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
+    for p in np.argwhere(dilated_track_points):
+        _, distance_from_raceline, _, _ = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
+        costmap[p[0], p[1]] = 100 * distance_from_raceline
+    np.save(f'{MAP_NAME}_costmap', costmap)
 
     centerline = np.flip(centerline, -1)
 
