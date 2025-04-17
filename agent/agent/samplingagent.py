@@ -55,8 +55,8 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         self.steering_saples_count: int = 15
         self.velocity_samples_count: int = 6
-        self.prediction_horizont: float = 1.0
-        self.trajectory_points: int = 20
+        self.prediction_horizont: float = 0.8
+        self.trajectory_points: int = 15
         self.trajectory_time_difference: float = self.prediction_horizont / self.trajectory_points
 
         self.acceleration_maximum: float = self.parameters["a_max"] * 0.5

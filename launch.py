@@ -94,7 +94,7 @@ def generate_launch_description():
             parameters=[{'map_name': map},
                         {'map_folder_path': f'{maps_folder}/{map}'},
                         {'agent_namespace': 'opp_racecar'},
-                        {'velocity_gain': 1.0}],
+                        {'velocity_gain': 0.9}],
             arguments=["--ros-args", "--log-level", "warn"]
         )
         
