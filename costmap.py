@@ -106,15 +106,14 @@ if __name__ == "__main__":
     np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
 
 
-    costmap = np.full_like(map, 100.0, dtype=float)
+    costmap = np.full_like(map, 0.0, dtype=float)
     dilated_map = dilate_map(map, 6)
     dilated_track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
     for p in np.argwhere(dilated_track_points):
         _, distance_from_raceline, _, _ = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
-        costmap[p[0], p[1]] = 100 * distance_from_raceline
+        costmap[p[0], p[1]] = distance_from_raceline
     np.save(f'{MAP_NAME}_costmap', costmap)
 
-    centerline = np.flip(centerline, -1)
 
     curvatures = np.zeros((centerline.shape[0]), dtype=np.float64)
     for p in range(0, centerline.shape[0]):
@@ -147,20 +146,49 @@ if __name__ == "__main__":
         abs_curvature_map[p[0], p[1]] = abs_curvatures[centerline_index]
         abs_curvature_gradient_map[p[0], p[1]] = curvature_gradient[centerline_index]
 
-    plt.subplot(2, 2, 1)
-    plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    plt.title('Curvature')
-    plt.colorbar()
-    plt.subplot(2, 2, 2)
-    plt.imshow(curvature_gradient_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    plt.title('Curvature gradient')
-    plt.colorbar()
-    plt.subplot(2, 2, 3)
-    plt.imshow(abs_curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    plt.title('ABS Curvature')
-    plt.colorbar()
-    plt.subplot(2, 2, 4)
-    plt.imshow(abs_curvature_gradient_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    plt.title('ABS Curvature gradient')
-    plt.colorbar()
+    # plt.subplot(2, 2, 1)
+    # plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    # plt.title('Curvature')
+    # plt.colorbar()
+    # plt.subplot(2, 2, 2)
+    # plt.imshow(curvature_gradient_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    # plt.title('Curvature gradient')
+    # plt.colorbar()
+    # plt.subplot(2, 2, 3)
+    # plt.imshow(abs_curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    # plt.title('ABS Curvature')
+    # plt.colorbar()
+    # plt.subplot(2, 2, 4)
+    # plt.imshow(abs_curvature_gradient_map, cmap='cool', interpolation='none', alpha=alpha_map)
+    # plt.title('ABS Curvature gradient')
+    # plt.colorbar()
+    # plt.show()
+
+    plt.figure()
+    plt.imshow(centerline_index_map[400:1600, 100:1900], cmap='cool', interpolation='none', alpha=alpha_map[400:1600, 100:1900])
+    c = plt.colorbar()
+    c.set_label('Relative position', rotation=90)
+    plt.title('Relative Position Map')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.savefig('relative_position_map.png')
+
+    plt.figure()
+    plt.imshow(costmap[400:1600, 100:1900], cmap='gray', interpolation='none', alpha=alpha_map[400:1600, 100:1900])
+    c = plt.colorbar()
+    c.set_label('Cost', rotation=90)
+    plt.title('Cost Map')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.savefig('cost_map.png')
+
+    plt.figure()
+    plt.imshow(curvature_map[400:1600, 100:1900], cmap='cool', interpolation='none', alpha=alpha_map[400:1600, 100:1900])
+    c = plt.colorbar()
+    c.set_label('Curvature', rotation=90)
+    plt.title('Curvature Map')
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.savefig('curvature_map.png')
+
     plt.show()
