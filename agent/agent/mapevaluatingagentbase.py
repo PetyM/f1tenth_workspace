@@ -89,7 +89,7 @@ class MapEvaluatingAgentBase(AgentBase):
         self.opp_trajectory_points: int = 10
         self.opp_trajectory_time_difference: float = self.opp_prediction_horizont / self.opp_trajectory_points
 
-        self.size: int = 6
+        self.size: int = 7
 
 
 
@@ -163,7 +163,7 @@ class MapEvaluatingAgentBase(AgentBase):
                 opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=s[0], y=s[1], theta=s[4]))
                 # costmap[opponent_grid_position[0] - 4: opponent_grid_position[0] + 4: , opponent_grid_position[1] - 4 : opponent_grid_position[1] + 4] = 100
 
-                cv2.line(costmap, np.flip(last_opponent_grid_position, 0), np.flip(opponent_grid_position, 0), color=60, thickness=2*self.size)
+                cv2.line(costmap, np.flip(last_opponent_grid_position, 0), np.flip(opponent_grid_position, 0), color=40, thickness=2*self.size)
                 cv2.line(costmap, np.flip(last_opponent_grid_position, 0), np.flip(opponent_grid_position, 0), color=100, thickness=self.size)
 
         self.costmap = costmap
