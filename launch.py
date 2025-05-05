@@ -9,14 +9,14 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
-    map = 'Monza'
+    map = 'Spielberg'
     opponent = False
 
     positions = {
         'Spielberg': {
-            'sx': 0.0,
-            'sy': 0.0,
-            'stheta': 0.0,
+            'sx': -5.0,
+            'sy': -1.0,
+            'stheta': math.radians(190),
             'sx1': 2.0,
             'sy1': 0.5,
             'stheta1': 0.0
@@ -44,7 +44,23 @@ def generate_launch_description():
             'sx1': 0.0,
             'sy1': 0.0,
             'stheta1': 0.0
-        }
+        },
+        'Melbourne': {
+            'sx': 0.0,
+            'sy': 0.0,
+            'stheta': math.radians(135.0),
+            'sx1': 2.0,
+            'sy1': 0.5,
+            'stheta1': 0.0
+        },
+        'Austin': {
+            'sx': 0.0,
+            'sy': 0.0,
+            'stheta': math.radians(135.0),
+            'sx1': 2.0,
+            'sy1': 0.5,
+            'stheta1': 0.0
+        },
     }
 
     bridge_node = Node(
@@ -52,7 +68,7 @@ def generate_launch_description():
         executable='gym_bridge',
         name='bridge',
         parameters=[{'simulate_opponent': opponent},
-                    {'map_path': f'{map}'},
+                    {'map_path': map},
                     {'sx': positions[map]['sx']},
                     {'sy': positions[map]['sy']},
                     {'stheta': positions[map]['stheta']},
@@ -109,7 +125,7 @@ def generate_launch_description():
                     {'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'},
                     {'velocity_gain': 1.0}],
-        arguments=["--ros-args", "--log-level", "warn"]
+        arguments=["--ros-args", "--log-level", "info"]
     )
 
     ld.add_action(rviz_node)

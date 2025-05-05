@@ -78,7 +78,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
     def generate_samples(self, state: State):
         curvature = self.get_curvature_change_for_position(state.position, state.velocity)
-        self.get_logger().info(f'Curvature: {curvature}')\
+        self.get_logger().info(f'Curvature: {curvature}')
 
         speed_factor = np.clip(1.0 - (abs(curvature) * 30.0), 0.0, 1.0)
         acceleration_factor = np.clip(1.0 - (abs(curvature) * 30.0), 0.0, 1.0)
@@ -146,11 +146,10 @@ class SamplingAgent(MapEvaluatingAgentBase):
         trajectories_filtered = []
         i = 0
         for sample, trajectory, evaluation in zip(control_samples, trajectories, trajectories_evaluation):
-            if not evaluation.collision:
-                trajectories_evaluated.append([i, evaluation.progress, evaluation.cost])
-                control_samples_filtered.append(sample)
-                trajectories_filtered.append(trajectory)
-                i += 1
+            trajectories_evaluated.append([i, evaluation.progress, evaluation.cost])
+            control_samples_filtered.append(sample)
+            trajectories_filtered.append(trajectory)
+            i += 1
 
         if len(control_samples_filtered) == 0:
             return [0, 0]

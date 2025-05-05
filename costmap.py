@@ -88,9 +88,9 @@ def calculate_curvature(p1, p2, p3):
     return curvature
 
 if __name__ == "__main__":
-    MAP_NAME: str = "Monza"
+    MAP_NAME: str = "Spielberg"
     MAP_FOLDER_PATH: str = pathlib.Path(__file__).parent.resolve() / "f1tenth_racetracks" / MAP_NAME
-    ANGLE_DIFFERENCE_STEP: int = 100
+    ANGLE_DIFFERENCE_STEP: int = 50
 
     map_info = load_map_info(MAP_FOLDER_PATH, MAP_NAME)
     map = load_map(MAP_FOLDER_PATH, MAP_NAME)
@@ -106,8 +106,8 @@ if __name__ == "__main__":
     np.save(f'{MAP_NAME}_centerline_index_map', centerline_index_map)
 
 
-    costmap = np.full_like(map, 0.0, dtype=float)
-    dilated_map = dilate_map(map, 6)
+    costmap = np.full_like(map, 255, dtype=float)
+    dilated_map = dilate_map(map, 7)
     dilated_track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
     for p in np.argwhere(dilated_track_points):
         _, distance_from_raceline, _, _ = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         next_next_centerline_point = centerline[(p + ANGLE_DIFFERENCE_STEP) % centerline.shape[0], :]
 
         curvatures[p] = calculate_curvature(next_centerline_point, centerline_point, next_next_centerline_point)
-    np.save(f'{MAP_NAME}_curvatures', curvatures)
+    np.save(f'{MAP_NAME}_curvatures', np.abs(curvatures))
     
     curvature_gradient = np.gradient(curvatures)
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     plt.title('Relative Position Map')
     plt.xlabel('X')
     plt.ylabel('Y')
-    plt.savefig('relative_position_map.png')
+    # plt.savefig('relative_position_map.png')
 
     plt.figure()
     plt.imshow(costmap, cmap='gray', interpolation='none', alpha=alpha_map)
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     plt.title('Cost Map')
     plt.xlabel('X')
     plt.ylabel('Y')
-    plt.savefig('cost_map.png')
+    # plt.savefig('cost_map.png')
 
     plt.figure()
     plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
@@ -172,6 +172,6 @@ if __name__ == "__main__":
     plt.title('Curvature Map')
     plt.xlabel('X')
     plt.ylabel('Y')
-    plt.savefig('curvature_map.png')
+    # plt.savefig('curvature_map.png')
 
     plt.show()

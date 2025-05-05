@@ -112,18 +112,21 @@ class MapEvaluatingAgentBase(AgentBase):
         costmap_path = pathlib.Path(f'{map_name}_costmap.npy')
         if costmap_path.exists():
             self.costmap_base = np.load(costmap_path)
+            self.get_logger().warn(f"costmap loaded from '{costmap_path}'")
         else:
             self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Costmap NOT found.')
 
         centerline_index_map_path = pathlib.Path(f'{map_name}_centerline_index_map.npy')
         if centerline_index_map_path.exists():
             self.centerline_index_map = np.load(centerline_index_map_path)
+            self.get_logger().warn(f"centerline map loaded from '{centerline_index_map_path}'")
         else:
             self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Centerline index map NOT found.')
 
         curvatures_path = pathlib.Path(f'{map_name}_curvatures.npy')
         if curvatures_path.exists():
             self.curvatures = np.load(curvatures_path)
+            self.get_logger().warn(f"curvatures loaded from '{curvatures_path}'")
         else:
             self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Curvature map NOT found.')
 
@@ -239,9 +242,4 @@ class MapEvaluatingAgentBase(AgentBase):
         lookeahead_curvatures = self.curvatures[centerline_index : lookahead_index]
         if lookahead_index < centerline_index:
             lookeahead_curvatures = np.hstack((self.curvatures[centerline_index:], self.curvatures[:lookahead_index]))
-        max_curvature = lookeahead_curvatures.max()
-        min_curvature = lookeahead_curvatures.min()
-
-        rtl = max_curvature - min_curvature
-        ltr = min_curvature - max_curvature
-        return rtl if abs(rtl) > abs(ltr) else ltr
+        return lookeahead_curvatures.max()
