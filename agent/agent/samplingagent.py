@@ -164,7 +164,7 @@ class SamplingAgent(MapEvaluatingAgentBase):
             progress_scores[trajectories_by_progress[i][0]] = i
             cost_scores[trajectories_by_cost[i][0]] = i
 
-        relative_velocity = state.velocity / self.velocity_maximum
+        # relative_velocity = state.velocity / self.velocity_maximum
         # variance_factor = 0.0
         # progress_weight = 1.0 + (variance_factor * relative_velocity) - (variance_factor / 2.0)
         # cost_weight = 1.0 + (-variance_factor * relative_velocity) + (variance_factor / 2.0)

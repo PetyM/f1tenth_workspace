@@ -3,20 +3,62 @@ from launch_ros.actions import Node
 from launch.substitutions import Command
 from ament_index_python.packages import get_package_share_directory
 import pathlib
+import math
 
 def generate_launch_description():
     ld = LaunchDescription()
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
-    map = 'Spielberg'
-    opponent = True
+    map = 'Monza'
+    opponent = False
+
+    positions = {
+        'Spielberg': {
+            'sx': 0.0,
+            'sy': 0.0,
+            'stheta': 0.0,
+            'sx1': 2.0,
+            'sy1': 0.5,
+            'stheta1': 0.0
+        },
+        'Spa': {
+            'sx': 1.0,
+            'sy': -2.0,
+            'stheta': 90.0,
+            'sx1': 0.0,
+            'sy1': 0.0,
+            'stheta1': 90.0
+        },
+        'Monza': {
+            'sx': 0.0,
+            'sy': 0.0,
+            'stheta': math.radians(80.0),
+            'sx1': 0.0,
+            'sy1': 0.0,
+            'stheta1': 0.0
+        },
+        'Nuerburgring': {
+            'sx': 0.0,
+            'sy': 0.0,
+            'stheta': math.radians(220.0),
+            'sx1': 0.0,
+            'sy1': 0.0,
+            'stheta1': 0.0
+        }
+    }
 
     bridge_node = Node(
         package='f1tenth_gym_ros',
         executable='gym_bridge',
         name='bridge',
         parameters=[{'simulate_opponent': opponent},
-                    {'map_path': f'{maps_folder}/{map}/{map}_map.png'}],
+                    {'map_path': f'{map}'},
+                    {'sx': positions[map]['sx']},
+                    {'sy': positions[map]['sy']},
+                    {'stheta': positions[map]['stheta']},
+                    {'sx1': positions[map]['sx1']},
+                    {'sy1': positions[map]['sy1']},
+                    {'stheta1': positions[map]['stheta1']}],
         arguments=["--ros-args", "--log-level", "warn"]
     )
 
@@ -66,7 +108,7 @@ def generate_launch_description():
         parameters=[{'opponent_present': opponent},
                     {'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'},
-                    {'velocity_gain': 0.6}],
+                    {'velocity_gain': 1.0}],
         arguments=["--ros-args", "--log-level", "warn"]
     )
 

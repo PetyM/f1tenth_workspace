@@ -44,12 +44,12 @@ def load_map(map_folder_path: str, map_name: str) -> np.ndarray:
 
 def load_centerline(map_folder_path: str, map_name: str) -> np.ndarray:
     centerline = Raceline.from_centerline_file(pathlib.Path(f"{map_folder_path}/{map_name}_centerline.csv"))
-    return np.flip(np.stack([centerline.xs, centerline.ys], dtype=np.float64).T, 0)
+    return np.stack([centerline.xs, centerline.ys], dtype=np.float64).T
 
 
 def load_raceline(map_folder_path: str, map_name: str) -> np.ndarray:
     raceline = Raceline.from_raceline_file(pathlib.Path(f"{map_folder_path}/{map_name}_raceline.csv"))
-    return np.flip(np.stack([raceline.xs, raceline.ys], dtype=np.float64).T, 0)
+    return np.stack([raceline.xs, raceline.ys], dtype=np.float64).T
 
 
 def map_to_grid_coordinates(map_info: MapInfo, coordinate: Vector3) -> np.ndarray:
@@ -88,7 +88,7 @@ def calculate_curvature(p1, p2, p3):
     return curvature
 
 if __name__ == "__main__":
-    MAP_NAME: str = "Spielberg"
+    MAP_NAME: str = "Monza"
     MAP_FOLDER_PATH: str = pathlib.Path(__file__).parent.resolve() / "f1tenth_racetracks" / MAP_NAME
     ANGLE_DIFFERENCE_STEP: int = 100
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     dilated_track_points = skimage.segmentation.flood(dilated_map, (map_origin_in_grid[0], map_origin_in_grid[1]))
     for p in np.argwhere(dilated_track_points):
         _, distance_from_raceline, _, _ = nearest_point_on_trajectory(grid_to_map_coordinates(map_info, p), centerline)
-        costmap[p[0], p[1]] = distance_from_raceline
+        costmap[p[0], p[1]] = 100 * distance_from_raceline
     np.save(f'{MAP_NAME}_costmap', costmap)
 
 
@@ -146,26 +146,9 @@ if __name__ == "__main__":
         abs_curvature_map[p[0], p[1]] = abs_curvatures[centerline_index]
         abs_curvature_gradient_map[p[0], p[1]] = curvature_gradient[centerline_index]
 
-    # plt.subplot(2, 2, 1)
-    # plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    # plt.title('Curvature')
-    # plt.colorbar()
-    # plt.subplot(2, 2, 2)
-    # plt.imshow(curvature_gradient_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    # plt.title('Curvature gradient')
-    # plt.colorbar()
-    # plt.subplot(2, 2, 3)
-    # plt.imshow(abs_curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    # plt.title('ABS Curvature')
-    # plt.colorbar()
-    # plt.subplot(2, 2, 4)
-    # plt.imshow(abs_curvature_gradient_map, cmap='cool', interpolation='none', alpha=alpha_map)
-    # plt.title('ABS Curvature gradient')
-    # plt.colorbar()
-    # plt.show()
 
     plt.figure()
-    plt.imshow(centerline_index_map[400:1600, 100:1900], cmap='cool', interpolation='none', alpha=alpha_map[400:1600, 100:1900])
+    plt.imshow(centerline_index_map, cmap='cool', interpolation='none', alpha=alpha_map)
     c = plt.colorbar()
     c.set_label('Relative position', rotation=90)
     plt.title('Relative Position Map')
@@ -174,7 +157,7 @@ if __name__ == "__main__":
     plt.savefig('relative_position_map.png')
 
     plt.figure()
-    plt.imshow(costmap[400:1600, 100:1900], cmap='gray', interpolation='none', alpha=alpha_map[400:1600, 100:1900])
+    plt.imshow(costmap, cmap='gray', interpolation='none', alpha=alpha_map)
     c = plt.colorbar()
     c.set_label('Cost', rotation=90)
     plt.title('Cost Map')
@@ -183,7 +166,7 @@ if __name__ == "__main__":
     plt.savefig('cost_map.png')
 
     plt.figure()
-    plt.imshow(curvature_map[400:1600, 100:1900], cmap='cool', interpolation='none', alpha=alpha_map[400:1600, 100:1900])
+    plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
     c = plt.colorbar()
     c.set_label('Curvature', rotation=90)
     plt.title('Curvature Map')
