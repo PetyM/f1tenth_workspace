@@ -88,7 +88,7 @@ def calculate_curvature(p1, p2, p3):
     return curvature
 
 if __name__ == "__main__":
-    MAP_NAME: str = "Spielberg"
+    MAP_NAME: str = "Nuerburgring"
     MAP_FOLDER_PATH: str = pathlib.Path(__file__).parent.resolve() / "f1tenth_racetracks" / MAP_NAME
     ANGLE_DIFFERENCE_STEP: int = 50
 

@@ -9,7 +9,7 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
-    map = 'Spielberg'
+    map = 'Nuerburgring'
     opponent = False
 
     positions = {
@@ -19,22 +19,6 @@ def generate_launch_description():
             'stheta': math.radians(190),
             'sx1': 2.0,
             'sy1': 0.5,
-            'stheta1': 0.0
-        },
-        'Spa': {
-            'sx': 1.0,
-            'sy': -2.0,
-            'stheta': 90.0,
-            'sx1': 0.0,
-            'sy1': 0.0,
-            'stheta1': 90.0
-        },
-        'Monza': {
-            'sx': 0.0,
-            'sy': 0.0,
-            'stheta': math.radians(80.0),
-            'sx1': 0.0,
-            'sy1': 0.0,
             'stheta1': 0.0
         },
         'Nuerburgring': {
@@ -52,15 +36,7 @@ def generate_launch_description():
             'sx1': 2.0,
             'sy1': 0.5,
             'stheta1': 0.0
-        },
-        'Austin': {
-            'sx': 0.0,
-            'sy': 0.0,
-            'stheta': math.radians(135.0),
-            'sx1': 2.0,
-            'sy1': 0.5,
-            'stheta1': 0.0
-        },
+        }
     }
 
     bridge_node = Node(
