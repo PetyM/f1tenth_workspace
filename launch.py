@@ -9,7 +9,7 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
-    map = 'Melbourne'
+    map = 'Spielberg'
     opponent = True
 
     positions = {
@@ -116,7 +116,7 @@ def generate_launch_description():
         parameters=[{'opponent_present': opponent},
                     {'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'},
-                    {'velocity_gain': 0.8 if opponent else 1.0}],
+                    {'velocity_gain': 1.0}],
         arguments=["--ros-args", "--log-level", "warn"]
     )
 

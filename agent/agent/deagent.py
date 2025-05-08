@@ -26,6 +26,15 @@ class DEAgent(rclpy.node.Node):
         self.declare_parameter('agent_namespace', 'ego_racecar')
         self.agent_namespace: str = self.get_parameter('agent_namespace').value
 
+        self.declare_parameter('driver', 'PureFTG')
+        DRIVERS = {
+            'GapFollower': agent.drivers.GapFollower,
+            'DisparityExtender': agent.drivers.DisparityExtender,
+            'PureFTG' : agent.drivers.PureFTG,
+            'Hybrid': agent.drivers.Hybrid
+        }
+        self.driver = DRIVERS[self.get_parameter('driver').value]()
+
         self.declare_parameter('velocity_gain', 1.0)
         self.velocity_gain: float =  self.get_parameter('velocity_gain').value
 
@@ -52,7 +61,6 @@ class DEAgent(rclpy.node.Node):
         self.scan_subcriber: rclpy.subscription.Subscription = self.create_subscription(LaserScan, f'{self.agent_namespace}/scan', self.scan_cb, 1)
         self.drive_publiser: rclpy.publisher.Publisher = self.create_publisher(AckermannDriveStamped, f'{self.agent_namespace}/drive', 1)
         self.timer_update_control: rclpy.timer.Timer = self.create_timer(0.001, self.update_control)
-        self.driver = agent.drivers.PureFTG()
         self.target_speed: float = 0.0
         self.target_steering_angle: float = 0.0
         self.ego_state: list[float] = [0,0,0,0,0,0,0]
