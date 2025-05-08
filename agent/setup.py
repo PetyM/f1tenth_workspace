@@ -24,7 +24,8 @@ setup(
         'console_scripts': [
             'purepursuitagent = agent.purepursuitagent:main',
             'samplingagent = agent.samplingagent:main',
-            'mppiagent = agent.mppiagent:main'
+            'mppiagent = agent.mppiagent:main',
+            'deagent = agent.deagent:main'
         ],
     },
 )

@@ -203,14 +203,14 @@ class PurePursuitAgent(AgentBase):
 
         self.wheelbase = self.params["lr"] + self.params["lf"]
 
-        centerline_file = pathlib.Path(f"{self.map_folder_path}/{self.map_name}_centerline.csv")
+        centerline_file = pathlib.Path(f"{self.map_folder_path}/{self.map_name}_raceline.csv")
 
-        centerline = Raceline.from_centerline_file(centerline_file)
-        self.waypoints = np.flip(np.stack([centerline.xs, centerline.ys, centerline.vxs]).T, 0)
+        centerline = Raceline.from_raceline_file(centerline_file)
+        self.waypoints = np.stack([centerline.xs, centerline.ys, centerline.vxs]).T
         self.max_reacquire = 20.0
 
         self.lookahead_distance = 2.0
-        self.vgain = 6.0 * self.velocity_gain
+        self.vgain = 0.9 * self.velocity_gain
         self.ready()
 
 

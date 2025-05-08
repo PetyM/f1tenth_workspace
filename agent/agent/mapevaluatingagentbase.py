@@ -83,14 +83,16 @@ class MapEvaluatingAgentBase(AgentBase):
                         "width": 0.31,
                         "length": 0.58}
         
+        self.save_path: str = 'precomputed'
+        
         self.prepare_costmap(map_folder_path, map_name)
 
         self.opp_prediction_horizont: float = 0.7
         self.opp_trajectory_points: int = 10
         self.opp_trajectory_time_difference: float = self.opp_prediction_horizont / self.opp_trajectory_points
 
-        self.size: int = 7
-
+        self.size: int = int(np.ceil(1.5 * self.parameters['width'] / self.map_info.resolution))
+        self.safe_size: int = int(np.ceil(3 * self.parameters['width'] / self.map_info.resolution))
 
 
     def prepare_costmap(self, map_folder_path: str, map_name: str):
@@ -109,21 +111,21 @@ class MapEvaluatingAgentBase(AgentBase):
             self.map_info.origin.orientation.w = 1.0
             self.map_info.map_load_time = self.get_clock().now().to_msg()
 
-        costmap_path = pathlib.Path(f'{map_name}_costmap.npy')
+        costmap_path = pathlib.Path(f'{self.save_path}/{map_name}/costmap.npy')
         if costmap_path.exists():
             self.costmap_base = np.load(costmap_path)
             self.get_logger().warn(f"costmap loaded from '{costmap_path}'")
         else:
             self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Costmap NOT found.')
 
-        centerline_index_map_path = pathlib.Path(f'{map_name}_centerline_index_map.npy')
+        centerline_index_map_path = pathlib.Path(f'{self.save_path}/{map_name}/centerline_index_map.npy')
         if centerline_index_map_path.exists():
             self.centerline_index_map = np.load(centerline_index_map_path)
             self.get_logger().warn(f"centerline map loaded from '{centerline_index_map_path}'")
         else:
             self.get_logger().fatal('MapEvaluatingAgentBase.prepare_costmap: Centerline index map NOT found.')
 
-        curvatures_path = pathlib.Path(f'{map_name}_curvatures.npy')
+        curvatures_path = pathlib.Path(f'{self.save_path}/{map_name}/curvatures.npy')
         if curvatures_path.exists():
             self.curvatures = np.load(curvatures_path)
             self.get_logger().warn(f"curvatures loaded from '{curvatures_path}'")
@@ -157,17 +159,20 @@ class MapEvaluatingAgentBase(AgentBase):
         costmap = np.copy(self.costmap_base)
 
         if self.opponent_present:
+            opp_costmap = np.full_like(costmap, 0.0)
             s = self.opp_state
-            opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=s[0], y=s[1], theta=s[4]))
+            opponent_grid_positions = [self.map_to_grid_coordinates(Pose2D(x=s[0], y=s[1], theta=s[4]))]
             for i in range(self.opp_trajectory_points - 1):
                 s = integrate_state(vehicle_dynamics_st, s, [0, 0], self.opp_trajectory_time_difference, self.parameters)
+                opponent_grid_positions.append(self.map_to_grid_coordinates(Pose2D(x=s[0], y=s[1], theta=s[4])))
+                
+            for i in range(1, len(opponent_grid_positions)):
+                cv2.line(opp_costmap, np.flip(opponent_grid_positions[i-1], 0), np.flip(opponent_grid_positions[i], 0), color=60, thickness=self.safe_size, lineType=cv2.LINE_8)
+                
+            for i in range(1, len(opponent_grid_positions)):
+                cv2.line(opp_costmap, np.flip(opponent_grid_positions[i-1], 0), np.flip(opponent_grid_positions[i], 0), color=255, thickness=self.size, lineType=cv2.LINE_8)
 
-                last_opponent_grid_position = opponent_grid_position
-                opponent_grid_position = self.map_to_grid_coordinates(Pose2D(x=s[0], y=s[1], theta=s[4]))
-                # costmap[opponent_grid_position[0] - 4: opponent_grid_position[0] + 4: , opponent_grid_position[1] - 4 : opponent_grid_position[1] + 4] = 100
-
-                cv2.line(costmap, np.flip(last_opponent_grid_position, 0), np.flip(opponent_grid_position, 0), color=40, thickness=2*self.size)
-                cv2.line(costmap, np.flip(last_opponent_grid_position, 0), np.flip(opponent_grid_position, 0), color=100, thickness=self.size)
+            costmap = np.add(costmap, opp_costmap)
 
         self.costmap = costmap
 

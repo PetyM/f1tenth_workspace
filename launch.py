@@ -9,34 +9,50 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     maps_folder = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
-    map = 'Nuerburgring'
-    opponent = False
+    map = 'Melbourne'
+    opponent = True
 
     positions = {
         'Spielberg': {
-            'sx': -5.0,
-            'sy': -1.0,
+            'sx': 0.0,
+            'sy': 0.0,
             'stheta': math.radians(190),
-            'sx1': 2.0,
-            'sy1': 0.5,
-            'stheta1': 0.0
+            'sx1': -2.0,
+            'sy1': -1.0,
+            'stheta1': math.radians(190)
         },
         'Nuerburgring': {
             'sx': 0.0,
             'sy': 0.0,
             'stheta': math.radians(220.0),
-            'sx1': 0.0,
-            'sy1': 0.0,
-            'stheta1': 0.0
+            'sx1': -2.0,
+            'sy1': -1.0,
+            'stheta1': math.radians(220.0)
         },
         'Melbourne': {
             'sx': 0.0,
             'sy': 0.0,
             'stheta': math.radians(135.0),
-            'sx1': 2.0,
-            'sy1': 0.5,
-            'stheta1': 0.0
-        }
+            'sx1': -2.0,
+            'sy1': 2.0,
+            'stheta1': math.radians(135.0)
+        },
+        'Shanghai': {
+            'sx': 0.0,
+            'sy': 0.0,
+            'stheta': math.radians(190.0),
+            'sx1': -2.0,
+            'sy1': -1.0,
+            'stheta1': math.radians(190)
+        },
+        'Austin': {
+            'sx': 0.0,
+            'sy': 0.0,
+            'stheta': math.radians(270.0),
+            'sx1': -2.0,
+            'sy1': -1.0,
+            'stheta1': math.radians(190)
+        },
     }
 
     bridge_node = Node(
@@ -100,8 +116,8 @@ def generate_launch_description():
         parameters=[{'opponent_present': opponent},
                     {'map_name': map},
                     {'map_folder_path': f'{maps_folder}/{map}'},
-                    {'velocity_gain': 1.0}],
-        arguments=["--ros-args", "--log-level", "info"]
+                    {'velocity_gain': 0.8 if opponent else 1.0}],
+        arguments=["--ros-args", "--log-level", "warn"]
     )
 
     ld.add_action(rviz_node)
@@ -123,12 +139,12 @@ def generate_launch_description():
 
         opp_agent_node = Node(
             package='agent',
-            executable='purepursuitagent',
+            executable='deagent',
             name='opp_agent',
             parameters=[{'map_name': map},
                         {'map_folder_path': f'{maps_folder}/{map}'},
                         {'agent_namespace': 'opp_racecar'},
-                        {'velocity_gain': 0.9}],
+                        {'velocity_gain': 1.0}],
             arguments=["--ros-args", "--log-level", "warn"]
         )
         
