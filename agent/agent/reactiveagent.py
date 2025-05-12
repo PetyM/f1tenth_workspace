@@ -31,7 +31,8 @@ class ReactiveAgent(rclpy.node.Node):
             'GapFollower': agent.drivers.GapFollower,
             'DisparityExtender': agent.drivers.DisparityExtender,
             'PureFTG' : agent.drivers.PureFTG,
-            'Hybrid': agent.drivers.Hybrid
+            'Hybrid': agent.drivers.Hybrid,
+            'DisparityExtenderMax': agent.drivers.DisparityExtenderMax
         }
         self.driver = DRIVERS[self.get_parameter('driver').value]()
 

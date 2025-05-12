@@ -16,7 +16,7 @@ def generate_launch_description():
 
     MAPS = ['Spielberg', 'Nuerburgring', 'Melbourne']
     AGENTS = ['samplingagent', 'reactiveagent']
-    REACTIVE_DRIVERS = ['PureFTG', 'DisparityExtender', 'GapFollower']
+    REACTIVE_DRIVERS = ['PureFTG', 'DisparityExtender', 'GapFollower', 'DisparityExtenderMax']
 
     map = 0
     agent = 0
