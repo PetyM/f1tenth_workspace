@@ -131,7 +131,7 @@ if __name__ == "__main__":
         curvatures[p] = calculate_curvature(next_centerline_point, centerline_point, next_next_centerline_point)
     np.save(f'{SAVE_PATH}/curvatures', np.abs(curvatures))
     
-    curvature_gradient = np.gradient(curvatures)
+    # curvature_gradient = np.gradient(curvatures)
 
     # abs_curvatures = np.abs(curvatures)
     # abs_curvature_gradient = np.gradient(abs_curvatures)
