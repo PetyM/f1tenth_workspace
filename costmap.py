@@ -133,25 +133,25 @@ if __name__ == "__main__":
     
     curvature_gradient = np.gradient(curvatures)
 
-    abs_curvatures = np.abs(curvatures)
-    abs_curvature_gradient = np.gradient(abs_curvatures)
-    np.save(f'{SAVE_PATH}/curvature_gradient', abs_curvature_gradient)
+    # abs_curvatures = np.abs(curvatures)
+    # abs_curvature_gradient = np.gradient(abs_curvatures)
+    # np.save(f'{SAVE_PATH}/curvature_gradient', abs_curvature_gradient)
 
     alpha_map = np.full_like(map, 0, dtype=float)
     alpha_map[track_points] = 1.0
 
     curvature_map = np.full_like(map, 0.0, dtype=float)
-    curvature_gradient_map = np.full_like(map, 0.0, dtype=float)
-    abs_curvature_map = np.full_like(map, 0.0, dtype=float)
-    abs_curvature_gradient_map = np.full_like(map, 0.0, dtype=float)
+    # curvature_gradient_map = np.full_like(map, 0.0, dtype=float)
+    # abs_curvature_map = np.full_like(map, 0.0, dtype=float)
+    # abs_curvature_gradient_map = np.full_like(map, 0.0, dtype=float)
 
     centerline_index_map = np.load(f'{SAVE_PATH}/centerline_index_map.npy')
     for p in np.argwhere(track_points):
         centerline_index = centerline_index_map[p[0], p[1]]
         curvature_map[p[0], p[1]] = curvatures[centerline_index]
-        curvature_gradient_map[p[0], p[1]] = curvature_gradient[centerline_index]
-        abs_curvature_map[p[0], p[1]] = abs_curvatures[centerline_index]
-        abs_curvature_gradient_map[p[0], p[1]] = curvature_gradient[centerline_index]
+        # curvature_gradient_map[p[0], p[1]] = curvature_gradient[centerline_index]
+        # abs_curvature_map[p[0], p[1]] = abs_curvatures[centerline_index]
+        # abs_curvature_gradient_map[p[0], p[1]] = curvature_gradient[centerline_index]
 
 
     plt.figure()
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     plt.title('Relative Position Map')
     plt.xlabel('X')
     plt.ylabel('Y')
-    # plt.savefig('relative_position_map.png')
+    # plt.savefig(f'{SAVE_PATH}/relative_position_map.png')
 
     plt.figure()
     plt.imshow(costmap, cmap='gray', interpolation='none', alpha=alpha_map)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     plt.title('Cost Map')
     plt.xlabel('X')
     plt.ylabel('Y')
-    # plt.savefig('cost_map.png')
+    # plt.savefig(f'{SAVE_PATH}/cost_map.png')
 
     plt.figure()
     plt.imshow(curvature_map, cmap='cool', interpolation='none', alpha=alpha_map)
@@ -179,6 +179,6 @@ if __name__ == "__main__":
     plt.title('Curvature Map')
     plt.xlabel('X')
     plt.ylabel('Y')
-    # plt.savefig('curvature_map.png')
+    # plt.savefig(f'{SAVE_PATH}/curvature_map.png')
 
     plt.show()
