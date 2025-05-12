@@ -25,7 +25,7 @@ setup(
             'purepursuitagent = agent.purepursuitagent:main',
             'samplingagent = agent.samplingagent:main',
             'mppiagent = agent.mppiagent:main',
-            'deagent = agent.deagent:main'
+            'reactiveagent = agent.reactiveagent:main'
         ],
     },
 )

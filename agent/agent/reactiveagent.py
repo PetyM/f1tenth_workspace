@@ -19,7 +19,7 @@ from f1tenth_gym.envs.dynamic_models import pid_steer, pid_accl
 import numpy as np
 import agent.drivers
 
-class DEAgent(rclpy.node.Node):
+class ReactiveAgent(rclpy.node.Node):
     def __init__(self):
         super().__init__('agent')
 
@@ -97,5 +97,5 @@ class DEAgent(rclpy.node.Node):
 
 def main():
     rclpy.init()
-    agent = DEAgent()
+    agent = ReactiveAgent()
     rclpy.spin(agent)
