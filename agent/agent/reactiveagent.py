@@ -28,11 +28,10 @@ class ReactiveAgent(rclpy.node.Node):
 
         self.declare_parameter('driver', 'PureFTG')
         DRIVERS = {
-            'GapFollower': agent.drivers.GapFollower,
-            'DisparityExtender': agent.drivers.DisparityExtender,
-            'PureFTG' : agent.drivers.PureFTG,
-            'Hybrid': agent.drivers.Hybrid,
-            'DisparityExtenderMax': agent.drivers.DisparityExtenderMax
+            'FTG': agent.drivers.GapFollower,
+            'DE': agent.drivers.DisparityExtender,
+            'FTGmax': agent.drivers.GapFollowerMax,
+            'DEmax' : agent.drivers.DisparityExtenderMax,
         }
         self.driver = DRIVERS[self.get_parameter('driver').value]()
 
@@ -79,14 +78,14 @@ class ReactiveAgent(rclpy.node.Node):
 
     
     def scan_cb(self, scan: LaserScan):
-        speed, steering_angle = self.driver.process_lidar(scan.ranges)
+        speed, steering_angle = self.driver.process_lidar(scan)
 
         self.target_speed = speed
         self.target_steering_angle = steering_angle
         self.get_logger().info(f'{speed=}, {steering_angle=} ')
 
     def update_control(self):
-        acceleration = pid_accl(self.target_speed, self.velocity_gain * self.ego_state[3], self.params["a_max"], self.params["v_max"] * self.velocity_gain, self.params["v_min"],)
+        acceleration = pid_accl(self.target_speed, self.ego_state[3], self.params["a_max"], self.params["v_max"] * self.velocity_gain, self.params["v_min"],)
         steering = pid_steer(self.target_steering_angle, self.ego_state[2], self.params["sv_max"])
         self.get_logger().info(f'{acceleration=}, {steering=} ')
 

@@ -10,32 +10,32 @@ def generate_launch_description():
     ld = LaunchDescription()
     OPPONENT = False
     MAPS_FOLDER = pathlib.Path(__file__).parent.resolve() / 'f1tenth_racetracks'
-    LAP_LIMIT = -1.0
+    LAP_LIMIT = 10.0
     START_TIME_DELTA = 0.0
-    TIME_LIMIT = 5.0
+    TIME_LIMIT = -1.0
 
     MAPS = ['Spielberg', 'Nuerburgring', 'Melbourne']
-    AGENTS = ['samplingagent', 'reactiveagent']
-    REACTIVE_DRIVERS = ['PureFTG', 'DisparityExtender', 'GapFollower', 'DisparityExtenderMax']
+    AGENTS = ['samplingagent', 'reactiveagent', 'purepursuitagent']
+    REACTIVE_DRIVERS = ['FTG', 'DE', 'FTGmax', 'DEmax']
 
-    map = 0
-    agent = 0
-    driver = 0
+    map = 2
+    agent = 2
+    driver = 3
 
     STARTING_POSITIONS = {
         'Spielberg': {
             'sx': 0.0,
-            'sy': 0.0,
+            'sy': -0.8,
             'stheta': math.radians(190),
         },
         'Nuerburgring': {
             'sx': 0.0,
-            'sy': 0.0,
+            'sy': -0.8,
             'stheta': math.radians(220.0),
         },
         'Melbourne': {
             'sx': 0.0,
-            'sy': 0.0,
+            'sy': -0.8,
             'stheta': math.radians(135.0),
         }
     }
