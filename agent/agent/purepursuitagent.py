@@ -1,5 +1,18 @@
 import rclpy
+import rclpy.callback_groups
+import rclpy.client
+import rclpy.logging
+import rclpy.node
+import rclpy.publisher
+import rclpy.subscription
+import rclpy.time
+import rclpy.timer
+import rclpy.qos
 
+from ackermann_msgs.msg import AckermannDriveStamped
+
+from std_msgs.msg import Float64MultiArray, Bool
+from std_srvs.srv import Empty
 import time
 from typing import Tuple
 
@@ -11,6 +24,14 @@ from agent.agentbase import AgentBase
 import pathlib
 from f1tenth_gym.envs.track import Raceline
 from f1tenth_gym.envs.dynamic_models import pid_steer, pid_accl
+
+from ackermann_msgs.msg import AckermannDriveStamped
+from sensor_msgs.msg import LaserScan
+
+from std_msgs.msg import Float64MultiArray, Bool
+from std_srvs.srv import Empty
+from f1tenth_gym.envs.dynamic_models import pid_steer, pid_accl
+
 
 @njit(fastmath=False, cache=True)
 def nearest_point_on_trajectory(point, trajectory):
@@ -172,15 +193,21 @@ def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, whe
     return speed, steering_angle
 
 
-class PurePursuitAgent(AgentBase):
-    def __init__(self, node_name: str= 'pursuitagent'):
-        super().__init__(node_name, 0.001)
+class PurePursuitAgent(rclpy.node.Node):
+    def __init__(self):
+        super().__init__('agent')
+
+        self.declare_parameter('agent_namespace', 'ego_racecar')
+        self.agent_namespace: str = self.get_parameter('agent_namespace').value
 
         self.declare_parameter('map_name', '')
         self.map_name: str = self.get_parameter('map_name').value
 
         self.declare_parameter('map_folder_path', '')
         self.map_folder_path: str = self.get_parameter('map_folder_path').value
+
+        self.declare_parameter('velocity_gain', 1.0)
+        self.velocity_gain: float =  self.get_parameter('velocity_gain').value
 
         self.params = {"mu": 1.0489, 
                   "C_Sf": 4.718,
@@ -200,18 +227,60 @@ class PurePursuitAgent(AgentBase):
                   "v_max": 20.0,
                   "width": 0.31,
                   "length": 0.58}
-
         self.wheelbase = self.params["lr"] + self.params["lf"]
-
         centerline_file = pathlib.Path(f"{self.map_folder_path}/{self.map_name}_raceline.csv")
+
 
         centerline = Raceline.from_raceline_file(centerline_file)
         self.waypoints = np.stack([centerline.xs, centerline.ys, centerline.vxs]).T
         self.max_reacquire = 20.0
+        self.lookahead_distance = 0.82461887897713965
 
-        self.lookahead_distance = 2.0
-        self.vgain = 0.9 * self.velocity_gain
+        self.ego_state_subscriber: rclpy.subscription.Subscription = self.create_subscription(Float64MultiArray, f'{self.agent_namespace}/state', self.ego_state_cb, 10)
+        self.drive_publiser: rclpy.publisher.Publisher = self.create_publisher(AckermannDriveStamped, f'{self.agent_namespace}/drive', 1)
+        self.timer_update_control: rclpy.timer.Timer = self.create_timer(0.001, self.update_control)
+        self.target_speed: float = 0.0
+        self.target_steering_angle: float = 0.0
+        self.ego_state: list[float] = [0,0,0,0,0,0,0]
+
         self.ready()
+
+    def ego_state_cb(self, msg: Float64MultiArray):
+        self.ego_state = msg.data
+
+        pose_x = np.float32(self.ego_state[0])
+        pose_y = np.float32(self.ego_state[1])
+        pose_theta = np.float32(self.ego_state[4])
+        position = np.array([pose_x, pose_y])
+        lookahead_point, _ = self._get_current_waypoint(self.waypoints, self.lookahead_distance, position, pose_theta)
+
+        if lookahead_point is None:
+            return [4.0, 0.0]
+
+        # actuation
+        speed, steering_angle = get_actuation(pose_theta, lookahead_point, position, self.lookahead_distance, self.wheelbase)
+
+        self.target_speed = self.velocity_gain * speed
+        self.target_steering_angle = steering_angle
+
+
+    def ready(self):
+        client = self.create_client(Empty, f'{self.agent_namespace}/ready')
+        client.wait_for_service()
+        client.call_async(Empty.Request())
+        self.get_logger().info('Ready')
+
+
+    def update_control(self):
+        acceleration = pid_accl(self.target_speed, self.ego_state[3], self.params["a_max"], self.params["v_max"] * self.velocity_gain, self.params["v_min"],)
+        steering = pid_steer(self.target_steering_angle, self.ego_state[2], self.params["sv_max"])
+        self.get_logger().info(f'{acceleration=}, {steering=} ')
+
+        msg = AckermannDriveStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.drive.acceleration = float(acceleration)
+        msg.drive.steering_angle_velocity = float(steering)
+        self.drive_publiser.publish(msg)
 
 
     def _get_current_waypoint(
@@ -251,41 +320,6 @@ class PurePursuitAgent(AgentBase):
             return wpts[i, :], i
         else:
             return None, None
-
-
-    def plan(self, pose: list[float]) -> list[float]:
-        """
-        gives actuation given observation
-        """
-        pose_x = np.float32(pose[0])
-        pose_y = np.float32(pose[1])
-        pose_theta = np.float32(pose[4])
-        position = np.array([pose_x, pose_y])
-        lookahead_point, i = self._get_current_waypoint(self.waypoints, self.lookahead_distance, position, pose_theta)
-
-        if lookahead_point is None:
-            return [4.0, 0.0]
-
-        # actuation
-        speed, steering_angle = get_actuation(pose_theta, lookahead_point, position, self.lookahead_distance, self.wheelbase)
-        speed = self.vgain * speed
-
-        accl = pid_accl(
-            speed,
-            pose[3],
-            self.params["a_max"],
-            self.params["v_max"] * self.velocity_gain,
-            self.params["v_min"],
-        )
-
-        sv = pid_steer(
-            steering_angle,
-            pose[2],
-            self.params["sv_max"],
-        )
-
-        return [sv, accl]
-    
 
 
 def main():
