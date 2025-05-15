@@ -15,13 +15,12 @@ def generate_launch_description():
     TIME_LIMIT = -1.0
 
     MAPS = ['Spielberg', 'Nuerburgring', 'Melbourne']
-    AGENTS = ['samplingagent', 'reactiveagent', 'purepursuitagent']
+    AGENTS = ['samplingagent', 'reactiveagent', 'purepursuitagent', 'samplingagentlimited']
     REACTIVE_DRIVERS = ['FTG', 'DEmax']
 
-    map = 1
-    agent = 0
+    map = 2
+    agent = 3
     driver = 0
-    velocity_limit = 8.0
 
     STARTING_POSITIONS = {
         'Spielberg': {
@@ -105,8 +104,7 @@ def generate_launch_description():
         parameters=[{'opponent_present': OPPONENT},
                     {'map_name': MAPS[map]},
                     {'map_folder_path': f'{MAPS_FOLDER}/{MAPS[map]}'},
-                    {'driver': REACTIVE_DRIVERS[driver]},
-                    {'velocity_limit': velocity_limit}],
+                    {'driver': REACTIVE_DRIVERS[driver]}],
         arguments=["--ros-args", "--log-level", "warn"]
     )
 

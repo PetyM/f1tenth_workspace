@@ -24,6 +24,7 @@ setup(
         'console_scripts': [
             'purepursuitagent = agent.purepursuitagent:main',
             'samplingagent = agent.samplingagent:main',
+            'samplingagentlimited = agent.samplingagentlimited:main',
             'reactiveagent = agent.reactiveagent:main',
         ],
     },
