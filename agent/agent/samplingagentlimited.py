@@ -31,6 +31,9 @@ class SamplingAgent(MapEvaluatingAgentBase):
         self.declare_parameter('followed_trajectory_topic', 'followed_trajectory')
         self.followed_trajectory_topic: str = self.get_parameter('followed_trajectory_topic').value
 
+        self.declare_parameter('velocity_limit', -1.0)
+        self.velocity_limit: float = self.get_parameter('velocity_limit').value
+
         self.predictions_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.predictions_topic}', 1)
         self.followed_trajectory_publisher: rclpy.publisher.Publisher = self.create_publisher(sensor_msgs.PointCloud2, f'{self.agent_namespace}/{self.followed_trajectory_topic}', 1)
 
@@ -86,6 +89,12 @@ class SamplingAgent(MapEvaluatingAgentBase):
 
         acceleration_minimum = 0 if (state.velocity < 5.0) else -self.acceleration_maximum
         acceleration_maximum = (-self.acceleration_maximum * deacceleration_factor) if (state.velocity > (self.velocity_maximum * speed_factor)) else (self.acceleration_maximum * acceleration_factor)
+
+
+        if (self.velocity_limit > 0) and (state.velocity >= self.velocity_limit):
+            acceleration_maximum = min(acceleration_maximum, 0.0)
+            acceleration_minimum = min(acceleration_minimum, 0.0)
+
 
         steering_speed_minimum = 0 if (state.steering_angle < self.steering_angle_minimum) else self.steering_speed_minimum
         steering_speed_maximum = 0 if (state.steering_angle > self.steering_angle_maximum) else self.steering_speed_maximum

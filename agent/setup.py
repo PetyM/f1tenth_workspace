@@ -26,6 +26,7 @@ setup(
             'samplingagent = agent.samplingagent:main',
             'samplingagentlimited = agent.samplingagentlimited:main',
             'reactiveagent = agent.reactiveagent:main',
+            'detector = agent.detector:main',
         ],
     },
 )

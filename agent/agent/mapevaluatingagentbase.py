@@ -91,8 +91,8 @@ class MapEvaluatingAgentBase(AgentBase):
         self.opp_trajectory_points: int = 10
         self.opp_trajectory_time_difference: float = self.opp_prediction_horizont / self.opp_trajectory_points
 
-        self.size: int = int(np.ceil(1.5 * self.parameters['width'] / self.map_info.resolution))
-        self.safe_size: int = int(np.ceil(3 * self.parameters['width'] / self.map_info.resolution))
+        self.size: int = int(np.ceil(2.5 * self.parameters['width'] / self.map_info.resolution))
+        self.safe_size: int = int(np.ceil(4.0 * self.parameters['width'] / self.map_info.resolution))
 
 
     def prepare_costmap(self, map_folder_path: str, map_name: str):

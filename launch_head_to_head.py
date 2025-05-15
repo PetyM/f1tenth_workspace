@@ -15,21 +15,22 @@ def generate_launch_description():
     TIME_LIMIT = -1.0
 
     MAPS = ['Spielberg', 'Nuerburgring', 'Melbourne']
-    AGENTS = ['samplingagent', 'reactiveagent', 'purepursuitagent']
+    AGENTS = ['samplingagent', 'reactiveagent', 'samplingagentlimited']
     REACTIVE_DRIVERS = ['FTG', 'DEmax']
 
-    time_delta = random.uniform(0.0, 5.0)
+    time_delta = random.uniform(0.0, 10.0)
     map = 0
     agent = 0
     driver = 0
     opponent_agent = 1
     opponent_driver = 1
-    velocity_limit = -1.0
+    velocity_limit = 12.0
+    opponent_velocity_limit = 6.0
 
     STARTING_POSITIONS = {
         'Spielberg': {
             'sx': 0.0,
-            'sy': -0.8,
+            'sy': -0.7,
             'stheta': math.radians(190.0),
             'sx1': -3.0,
             'sy1': -1.5,
@@ -146,12 +147,22 @@ def generate_launch_description():
             parameters=[{'map_name': MAPS[map]},
                         {'map_folder_path': f'{MAPS_FOLDER}/{MAPS[map]}'},
                         {'agent_namespace': 'opp_racecar'},
-                        {'driver': REACTIVE_DRIVERS[opponent_driver]}],
+                        {'driver': REACTIVE_DRIVERS[opponent_driver]},
+                        {'velocity_limit': opponent_velocity_limit}],
             arguments=["--ros-args", "--log-level", "warn"]
         )
         
+        detector_node = Node(
+            package='agent',
+            executable='detector',
+            name='detector',
+            parameters=[],
+            arguments=["--ros-args", "--log-level", "warn"]
+        )
+
         ld.add_action(opp_agent_node)
         ld.add_action(opp_robot_publisher)
+        ld.add_action(detector_node)
 
 
     get_logger().info(f"Launching '{AGENTS[agent]}' {f'({REACTIVE_DRIVERS[driver]})' if agent == 1 else ''} on map '{MAPS[map]}")
