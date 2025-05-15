@@ -10,7 +10,9 @@ class Trajectory:
 class TrajectoryEvaluation:
     progress: float
     cost: float
+    collision: bool
 
-    def __init__(self, progress: float = 0.0, cost: float = 0.0):
+    def __init__(self, progress: float = 0.0, cost: float = 0.0, collision: bool = False):
         self.progress = progress
         self.cost = cost
+        self.collision = collision
