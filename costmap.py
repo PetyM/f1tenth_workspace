@@ -89,11 +89,11 @@ def calculate_curvature(p1, p2, p3):
     return curvature
 
 if __name__ == "__main__":
-    MAP_NAME: str = "Spielberg"
+    MAP_NAME: str = "Melbourne"
     MAP_FOLDER_PATH: str = pathlib.Path(__file__).parent.resolve() / "f1tenth_racetracks" / MAP_NAME
     ANGLE_DIFFERENCE_STEP: int = 50
     VEHICLE_LENGTH = 0.58
-    VEHICLE_WIDTH = 0.31
+    VEHICLE_WIDTH = 0.31 * 0.6
     SAVE_PATH = f'precomputed/{MAP_NAME}'
     if not os.path.exists(SAVE_PATH):
         os.makedirs(SAVE_PATH)
